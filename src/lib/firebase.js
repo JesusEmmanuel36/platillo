@@ -2,13 +2,13 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore"; 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAQ-bk8rp2reJUBj7cQEDvZNNcOcHuRsvc",
-  authDomain: "platillo-ce5e1.firebaseapp.com",
-  projectId: "platillo-ce5e1",
-  storageBucket: "platillo-ce5e1.firebasestorage.app",
-  messagingSenderId: "341398055821",
-  appId: "1:341398055821:web:21baf6be6ca64d0b092bc4",
-  measurementId: "G-XMPC0JW20W"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);
