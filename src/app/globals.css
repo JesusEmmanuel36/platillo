@@ -1,4 +1,6 @@
+@import url("https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&family=Host+Grotesk:ital,wght@0,300..800;1,300..800&family=Lexend:wght@100..900&family=Onest:wght@100..900&display=swap");
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 :root {
   --background: #ffffff;
@@ -8,19 +10,60 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Lexend", sans-serif;
 }
 
+/*
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #000000;
+    --fosreground: #ededed;
   }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: #ffffff;
+    --foreground: #000000;
+  }
+}
+
+*/
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+  --light-gray: #ededed;
+  --green-color: #c6f2ad;
+  --green-text-color: #478f3d;
+  --red-color: #ffa3a3;
+  --red-text-color: #fd0000;
+  --gray-color: #929292;
+  --half-gray: #cbcbcb;
+  --accent-color: #ed400b;
+  --light-accent: #efa886;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Lexend", sans-serif;
+}
+
+h1 {
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 0.9;
+}
+
+h2 {
+  font-size: 20px;
+}
+
+p {
+  line-height: 1;
+}
+
+input {
+  font-family: "Lexend", sans-serif;
 }
