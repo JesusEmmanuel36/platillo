@@ -138,7 +138,7 @@ export default function Cart({ onClose }) {
                         </button>
 
                         <p className="relative left-14 text-[14px]">
-                          ${item.totalPrice} MXN
+                          ${item.totalPrice} MXN 
                         </p>
                       </div>
                     </div>
