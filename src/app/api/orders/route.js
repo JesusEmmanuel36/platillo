@@ -53,12 +53,10 @@ function calcularPrecioItem(productoDB, itemFrontend) {
   const errores = [];
   const esDynamic = productoDB.priceType === "dynamic";
 
-  // Si es fixed, arranca con el precio base; si es dynamic, arranca en 0
   let precio = esDynamic ? 0 : Number(productoDB.price ?? 0);
 
   const optionsFrontend = itemFrontend.options;
 
-  // Producto sin opciones → devuelve price directo
   if (!productoDB.options || productoDB.options.length === 0) {
     return { precio: Number(productoDB.price ?? 0), errores };
   }
@@ -77,7 +75,6 @@ function calcularPrecioItem(productoDB, itemFrontend) {
     }
     if (valorFrontend === undefined) continue;
 
-    // ── radio ──
     if (grupoDB.type === "radio") {
       if (typeof valorFrontend !== "object" || Array.isArray(valorFrontend)) {
         errores.push(`"${titulo}" debe ser un objeto.`);
@@ -88,17 +85,13 @@ function calcularPrecioItem(productoDB, itemFrontend) {
         errores.push(`Opción "${valorFrontend.name}" no existe en "${titulo}".`);
         continue;
       }
-
       if (esDynamic) {
-        // dynamic: el radio DEFINE el precio base (asigna, no suma)
         precio = Number(choiceDB.price);
       } else {
-        // fixed: el radio solo SUMA al precio base
         precio += Number(choiceDB.price);
       }
     }
 
-    // ── checkbox ──
     if (grupoDB.type === "checkbox") {
       if (!Array.isArray(valorFrontend)) {
         errores.push(`"${titulo}" debe ser un array.`);
@@ -122,7 +115,6 @@ function calcularPrecioItem(productoDB, itemFrontend) {
       }
     }
 
-    // ── addable ──
     if (grupoDB.type === "addable") {
       if (typeof valorFrontend !== "object" || Array.isArray(valorFrontend)) {
         errores.push(`"${titulo}" debe ser un objeto.`);
@@ -154,6 +146,28 @@ function calcularPrecioItem(productoDB, itemFrontend) {
   }
 
   return { precio, errores };
+}
+
+// ─── Push notification ───────────────────────────────────────────────────────
+
+async function enviarNotificacionPush(token, pedido) {
+  if (!token) return;
+  try {
+    await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: token,
+        title: "🍽️ Nuevo pedido",
+        body: `${pedido.cliente.nombre} · $${pedido.total}`,
+        sound: "default",
+        priority: "high",
+      }),
+    });
+    console.log("🔔 Push enviado a:", token);
+  } catch (e) {
+    console.error("Error enviando push:", e);
+  }
 }
 
 // ─── Handler principal ───────────────────────────────────────────────────────
@@ -309,6 +323,9 @@ export async function POST(req) {
         creadoEn: new Date(),
       });
 
+      // 🔔 Push
+      await enviarNotificacionPush(restaurante.expoPushToken, pedidoCompleto);
+
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(totalBackend * 100),
         currency: "mxn",
@@ -332,6 +349,9 @@ export async function POST(req) {
 
       orderId = pedidoRef.id;
 
+      // 🔔 Push
+      await enviarNotificacionPush(restaurante.expoPushToken, pedidoCompleto);
+
       console.log(`📦 Pedido ${pedidoRef.id} guardado — método: ${metodoPago}`);
     }
 
@@ -349,4 +369,4 @@ export async function POST(req) {
     console.error("❌ Error en /api/orders:", err);
     return NextResponse.json({ ok: false, error: "Error interno del servidor." }, { status: 500 });
   }
-};
+}
