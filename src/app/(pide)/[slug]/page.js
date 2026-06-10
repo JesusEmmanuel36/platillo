@@ -17,7 +17,7 @@ export default async function Page({ params }) {
   }
 
   const restaurant = await getRestaurant(slug);
-  if (!restaurant) return notFound();
+  if (!restaurant) return redirect("https://platillo.mx");
 
   const products = await getProducts(restaurant.id);
 
