@@ -5,19 +5,19 @@ import { getRestaurant, getProducts } from "@/lib/firestore";
 import RestaurantPage from "@/components/RestaurantPage";
 
 export default async function Page({ params }) {
-  const { slug } = params;
+  const { slug } = await params;
 
-  // 👇 detectar dominio
-  const headersList = headers();
+  const headersList = await headers();
   const host = headersList.get("host");
 
-  // 👇 permitir SOLO pide.platillo.mx
-  if (host !== "pide.platillo.mx") {
+  const isPideDomain = host === "pide.platillo.mx";
+
+  if (!isPideDomain) {
     return notFound();
   }
 
   const restaurant = await getRestaurant(slug);
-  if (!restaurant) return <div>No encontrado</div>;
+  if (!restaurant) return notFound();
 
   const products = await getProducts(restaurant.id);
 
