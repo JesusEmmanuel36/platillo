@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const REAL_ROUTES = ["/", "/hola"];
+const REAL_ROUTES = ["/", "/gordo"];
 
 export function middleware(req) {
   const host = req.headers.get("host");
