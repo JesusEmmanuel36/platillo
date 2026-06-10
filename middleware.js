@@ -1,15 +1,27 @@
 import { NextResponse } from "next/server";
 
+const REAL_ROUTES = ["/", "/hola"];
+
 export function middleware(req) {
   const host = req.headers.get("host");
   const { pathname } = req.nextUrl;
 
-  // SOLO proteger rutas de restaurante (no landing)
-  const isRestaurantRoute = pathname.split("/").length > 2;
+  // 1. Solo aplicar en platillo.mx
+  const isMainDomain = host === "platillo.mx";
 
-  if (host !== "pide.platillo.mx" && isRestaurantRoute) {
-    return NextResponse.redirect(new URL("https://platillo.mx", req.url));
+  if (!isMainDomain) {
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  // 2. Permitir rutas reales
+  if (REAL_ROUTES.includes(pathname)) {
+    return NextResponse.next();
+  }
+
+  // 3. TODO lo demás se redirige
+  return NextResponse.redirect(new URL("https://platillo.mx", req.url));
 }
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
