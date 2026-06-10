@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-
+import { redirect } from "next/navigation";
 import { getRestaurant, getProducts } from "@/lib/firestore";
 import RestaurantPage from "@/components/RestaurantPage";
 
@@ -13,7 +13,7 @@ export default async function Page({ params }) {
   const isPideDomain = host === "pide.platillo.mx";
 
   if (!isPideDomain) {
-    return notFound();
+    return redirect("https://platillo.mx");
   }
 
   const restaurant = await getRestaurant(slug);
