@@ -3,14 +3,16 @@ import { useState } from "react";
 import Cart from "./Cart";
 import { useCartStore } from "@/stores/useCartStore";
 
-export default function Navbar() {
+export default function Navbar({ restaurantOpen = true }) {
   const [cartOpen, setCartOpen] = useState(false);
   const cart = useCartStore((state) => state.cart);
+
+  if (!restaurantOpen) return null;
 
   return (
     <>
       {/* BARRA INFERIOR DE TABS*/}
-      <div className="fixed inset-x-0 mx-auto w-full max-w-[420px] bottom-0 left-0 w-full bg-white z-50 h-[80px] flex justify-around items-center shadow-[0_-2px_10px_rgba(0,0,0,0.08)] ">
+      <div className="fixed inset-x-0 mx-auto w-full max-w-[420px] bottom-0 left-0 w-full bg-white z-20 h-[80px] flex justify-around items-center shadow-[0_-2px_10px_rgba(0,0,0,0.08)] ">
         <button
           onClick={() => setCartOpen(true)}
           className="top-[-25px] cursor-pointer absolute flex items-center justify-center bg-[var(--accent-color)] rounded-[100px] w-14 h-14 shadow-[0_3px_20px_var(--accent-color)]"
@@ -62,8 +64,6 @@ export default function Navbar() {
           </svg>
           Inicio
         </div>
-
-         
 
         <div className="hidden cursor-pointer flex flex-col items-center justify-center text-[var(--gray-color)]">
           <svg

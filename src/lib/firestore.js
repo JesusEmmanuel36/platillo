@@ -34,14 +34,12 @@ export async function getRestaurant(slug) {
 }
 
 // Productos
+
+// Productos
 export async function getProducts(id) {
   const q = query(collection(db, "products"), where("restaurantId", "==", id));
-
   const snap = await getDocs(q);
-
-  return snap.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
+  return snap.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() }))
+    .sort((a, b) => a.id.localeCompare(b.id)); // más antiguo primero
 }
- 

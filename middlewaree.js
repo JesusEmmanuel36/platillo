@@ -1,6 +1,11 @@
+/** 
+  
+
 import { NextResponse } from "next/server";
 
 const REAL_ROUTES = ["/", "/gordo"];
+
+
 
 export function middleware(req) {
   const host = req.headers.get("host");
@@ -25,3 +30,6 @@ export function middleware(req) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
+
+
+ */

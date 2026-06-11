@@ -5,17 +5,53 @@ import ProductCard from "./ProductCard";
 import dynamic from "next/dynamic";
 import { getProducts } from "@/lib/firestore";
 import ProductOptionsModal from "./ProductModal";
+import Navbar from "./Navbar";
 
 const Map = dynamic(() => import("./Map"), {
   ssr: false,
 });
+
+function estaDentroDelHorario(restaurant) {
+  if (!restaurant?.isOpen) return false;
+  if (restaurant?.alwaysOpen) return true;
+
+  const dias = [
+    "Domingo",
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
+  ];
+
+  const ahora = new Date();
+  const diaActual = dias[ahora.getDay()];
+
+  const horarioHoy = restaurant.horarios?.find((h) => h.dia === diaActual);
+
+  if (!horarioHoy || !horarioHoy.abierto) return false;
+
+  const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
+
+  const [apH, apM] = horarioHoy.apertura.split(":").map(Number);
+
+  const [ciH, ciM] = horarioHoy.cierre.split(":").map(Number);
+
+  const minutosApertura = apH * 60 + apM;
+  const minutosCierre = ciH * 60 + ciM;
+
+  return minutosAhora >= minutosApertura && minutosAhora <= minutosCierre;
+}
 
 export default function RestaurantPage({ restaurant, products }) {
   const [locationDivOpen, setLocationDivOpen] = useState(false);
   const [OpeningDivOpen, setOpeningDivOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  const categories = [...new Set(products.map((p) => p.category))].reverse();
+  const restauranteDisponible = estaDentroDelHorario(restaurant);
+
+  const categories = [...new Set(products.map((p) => p.category))];
 
   const initialOpenState = {};
   categories.forEach((c) => (initialOpenState[c] = true));
@@ -42,12 +78,12 @@ export default function RestaurantPage({ restaurant, products }) {
         <div className="flex flex-row justify-between items-center">
           {/* DIV STATUS Y REDES */}
           <div
-            className={`flex flex-row justify-between items-center rounded-[10px] text-[14px] px-3 py-1 gap-2 ${restaurant.isOpen ? " bg-[var(--green-color)] text-[var(--green-text-color)]" : "bg-[var(--red-color)] text-[var(--red-text-color)]"} `}
+            className={`flex flex-row justify-between items-center rounded-[10px] text-[14px] px-3 py-1 gap-2 ${restauranteDisponible ? " bg-[var(--green-color)] text-[var(--green-text-color)]" : "bg-[var(--red-color)] text-[var(--red-text-color)]"} `}
           >
             <div
-              className={`w-[8px] h-[8px] rounded-[100px] ${restaurant.isOpen ? "bg-[var(--green-text-color)]" : "bg-[var(--red-text-color)]"} `}
+              className={`w-[8px] h-[8px] rounded-[100px] ${restauranteDisponible ? "bg-[var(--green-text-color)]" : "bg-[var(--red-text-color)]"} `}
             ></div>
-            {restaurant.isOpen ? "Abierto" : "Cerrado"}
+            {restauranteDisponible ? "Abierto" : "Cerrado"}
           </div>
           <div className="flex gap-3">
             {/* SVG UBICACION */}
@@ -95,35 +131,39 @@ export default function RestaurantPage({ restaurant, products }) {
 
             {/* SVG INSTAGRAM */}
 
-            <svg
-              onClick={() => {
-                window.location.href = restaurant.instagram;
-              }}
-              className="w-9 h-9 bg-[var(--light-gray)] rounded-[9px] p-[5px] cursor-pointer"
-              fill="#000000"
-              viewBox="0 0 32 32"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M20.445 5h-8.891A6.559 6.559 0 0 0 5 11.554v8.891A6.559 6.559 0 0 0 11.554 27h8.891a6.56 6.56 0 0 0 6.554-6.555v-8.891A6.557 6.557 0 0 0 20.445 5zm4.342 15.445a4.343 4.343 0 0 1-4.342 4.342h-8.891a4.341 4.341 0 0 1-4.341-4.342v-8.891a4.34 4.34 0 0 1 4.341-4.341h8.891a4.342 4.342 0 0 1 4.341 4.341l.001 8.891z" />
-              <path d="M16 10.312c-3.138 0-5.688 2.551-5.688 5.688s2.551 5.688 5.688 5.688 5.688-2.551 5.688-5.688-2.55-5.688-5.688-5.688zm0 9.163a3.475 3.475 0 1 1-.001-6.95 3.475 3.475 0 0 1 .001 6.95zM21.7 8.991a1.363 1.363 0 1 1-1.364 1.364c0-.752.51-1.364 1.364-1.364z" />
-            </svg>
+            {restaurant.instagram && (
+              <svg
+                onClick={() => {
+                  window.location.href = restaurant.instagram;
+                }}
+                className="w-9 h-9 bg-[var(--light-gray)] rounded-[9px] p-[5px] cursor-pointer"
+                fill="#000000"
+                viewBox="0 0 32 32"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M20.445 5h-8.891A6.559 6.559 0 0 0 5 11.554v8.891A6.559 6.559 0 0 0 11.554 27h8.891a6.56 6.56 0 0 0 6.554-6.555v-8.891A6.557 6.557 0 0 0 20.445 5zm4.342 15.445a4.343 4.343 0 0 1-4.342 4.342h-8.891a4.341 4.341 0 0 1-4.341-4.342v-8.891a4.34 4.34 0 0 1 4.341-4.341h8.891a4.342 4.342 0 0 1 4.341 4.341l.001 8.891z" />
+                <path d="M16 10.312c-3.138 0-5.688 2.551-5.688 5.688s2.551 5.688 5.688 5.688 5.688-2.551 5.688-5.688-2.55-5.688-5.688-5.688zm0 9.163a3.475 3.475 0 1 1-.001-6.95 3.475 3.475 0 0 1 .001 6.95zM21.7 8.991a1.363 1.363 0 1 1-1.364 1.364c0-.752.51-1.364 1.364-1.364z" />
+              </svg>
+            )}
 
             {/* SVG FACEBOOK */}
 
-            <svg
-              onClick={() => {
-                window.location.href = restaurant.facebook;
-              }}
-              className="w-9 h-9 bg-[var(--light-gray)] rounded-[9px] p-[5px] cursor-pointer"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M20 12.05C19.9813 10.5255 19.5273 9.03809 18.6915 7.76295C17.8557 6.48781 16.673 5.47804 15.2826 4.85257C13.8921 4.2271 12.3519 4.01198 10.8433 4.23253C9.33473 4.45309 7.92057 5.10013 6.7674 6.09748C5.61422 7.09482 4.77005 8.40092 4.3343 9.86195C3.89856 11.323 3.88938 12.8781 4.30786 14.3442C4.72634 15.8103 5.55504 17.1262 6.69637 18.1371C7.83769 19.148 9.24412 19.8117 10.75 20.05V14.38H8.75001V12.05H10.75V10.28C10.7037 9.86846 10.7483 9.45175 10.8807 9.05931C11.0131 8.66687 11.23 8.30827 11.5161 8.00882C11.8022 7.70936 12.1505 7.47635 12.5365 7.32624C12.9225 7.17612 13.3368 7.11255 13.75 7.14003C14.3498 7.14824 14.9482 7.20173 15.54 7.30003V9.30003H14.54C14.3676 9.27828 14.1924 9.29556 14.0276 9.35059C13.8627 9.40562 13.7123 9.49699 13.5875 9.61795C13.4627 9.73891 13.3667 9.88637 13.3066 10.0494C13.2464 10.2125 13.2237 10.387 13.24 10.56V12.07H15.46L15.1 14.4H13.25V20C15.1399 19.7011 16.8601 18.7347 18.0985 17.2761C19.3369 15.8175 20.0115 13.9634 20 12.05Z"
-                fill="#000000"
-              />
-            </svg>
+            {restaurant.facebook && (
+              <svg
+                onClick={() => {
+                  window.location.href = restaurant.facebook;
+                }}
+                className="w-9 h-9 bg-[var(--light-gray)] rounded-[9px] p-[5px] cursor-pointer"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M20 12.05C19.9813 10.5255 19.5273 9.03809 18.6915 7.76295C17.8557 6.48781 16.673 5.47804 15.2826 4.85257C13.8921 4.2271 12.3519 4.01198 10.8433 4.23253C9.33473 4.45309 7.92057 5.10013 6.7674 6.09748C5.61422 7.09482 4.77005 8.40092 4.3343 9.86195C3.89856 11.323 3.88938 12.8781 4.30786 14.3442C4.72634 15.8103 5.55504 17.1262 6.69637 18.1371C7.83769 19.148 9.24412 19.8117 10.75 20.05V14.38H8.75001V12.05H10.75V10.28C10.7037 9.86846 10.7483 9.45175 10.8807 9.05931C11.0131 8.66687 11.23 8.30827 11.5161 8.00882C11.8022 7.70936 12.1505 7.47635 12.5365 7.32624C12.9225 7.17612 13.3368 7.11255 13.75 7.14003C14.3498 7.14824 14.9482 7.20173 15.54 7.30003V9.30003H14.54C14.3676 9.27828 14.1924 9.29556 14.0276 9.35059C13.8627 9.40562 13.7123 9.49699 13.5875 9.61795C13.4627 9.73891 13.3667 9.88637 13.3066 10.0494C13.2464 10.2125 13.2237 10.387 13.24 10.56V12.07H15.46L15.1 14.4H13.25V20C15.1399 19.7011 16.8601 18.7347 18.0985 17.2761C19.3369 15.8175 20.0115 13.9634 20 12.05Z"
+                  fill="#000000"
+                />
+              </svg>
+            )}
           </div>
         </div>
         <div className="flex flex-row gap-3 w-full">
@@ -139,6 +179,23 @@ export default function RestaurantPage({ restaurant, products }) {
             </p>
           </div>
         </div>
+
+        {!restauranteDisponible && (
+          <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center px-6">
+            <div className="bg-[var(--red-color)] text-[var(--red-text-color)] border border-[var(--red-text-color)] rounded-[12px] p-5 max-w-[320px] text-center shadow-xl">
+              <p className="font-semibold text-[18px]">Restaurante cerrado</p>
+
+              <p className="mt-2">
+                Este restaurante se encuentra cerrado en este momento.
+              </p>
+
+              <p className="text-[14px] mt-1 opacity-80">
+                Puedes consultar el menú, pero no es posible realizar pedidos
+                por ahora.
+              </p>
+            </div>
+          </div>
+        )}
 
         {categories.map((category, index) => {
           const productsByCategory = products.filter(
@@ -193,8 +250,12 @@ export default function RestaurantPage({ restaurant, products }) {
                     description={product.description}
                     image={product.image}
                     category={product.category}
-                    onAdd={() => setSelectedProduct(product)} // pasamos el producto seleccionado
                     priceType={product.priceType}
+                    restaurantOpen={restauranteDisponible}
+                    onAdd={() => {
+                      if (!restauranteDisponible) return;
+                      setSelectedProduct(product);
+                    }}
                   />
                 ))}
               </div>
@@ -303,6 +364,8 @@ export default function RestaurantPage({ restaurant, products }) {
           </div>
         </div>
       )}
+
+      <Navbar restaurantOpen={restauranteDisponible} />
 
       {/* DIV MODAL PRODUCT OPTIONS*/}
 

@@ -5,13 +5,16 @@ export default function ProductCard({
   stock,
   image,
   onAdd,
-  priceType
+  priceType,
+  restaurantOpen,
 }) {
-
-  console.log(priceType)
   return (
-    <div className="bg-white rounded-[5px] shadow-[0_0px_5px_rgba(0,0,0,0.25)] flex flex-col p-0 gap-2">
-      <img className="w-full rounded-[4px]" src={image}></img>
+    <div
+      className={`bg-white rounded-[5px] shadow-[0_0px_5px_rgba(0,0,0,0.25)] flex flex-col p-0 gap-2 ${
+        !restaurantOpen ? "" : ""
+      }`}
+    >
+      <img className="w-full rounded-[4px]" src={image} />
 
       <div className="flex flex-col gap-[5px] p-2 pt-0">
         <div
@@ -27,25 +30,34 @@ export default function ProductCard({
                 ? "bg-[var(--green-text-color)]"
                 : "bg-[var(--red-text-color)]"
             }`}
-          ></div>
+          />
 
           {stock ? "En stock" : "Agotado"}
         </div>
 
         <p className="font-semibold">{name}</p>
+
         <p className="text-[14px] text-[var(--gray-color)]">
           {description.length > 42
             ? description.slice(0, 39) + "..."
             : description}
         </p>
 
-        <p className="">{` ${(priceType === "dynamic") ? "Desde " : ""} $${price} MXN`}</p>
+        <p>
+          {priceType === "dynamic" ? "Desde " : ""}
+          ${price} MXN
+        </p>
+
         <button
           className="cursor-pointer bg-[var(--accent-color)] text-white p-1 rounded-[5px] disabled:bg-[var(--light-accent)] disabled:cursor-not-allowed"
-          disabled={!stock}
+          disabled={!stock || !restaurantOpen}
           onClick={onAdd}
         >
-          Agregar
+          {!restaurantOpen
+            ? "No disponible"
+            : stock
+              ? "Agregar"
+              : "Agotado"}
         </button>
       </div>
     </div>

@@ -181,12 +181,19 @@ export default function ProductOptionsModal({ product, onClose }) {
                                 [opt.title]: [...current, choice],
                               };
                             } else {
-                              return {
-                                ...prev,
-                                [opt.title]: current.filter(
-                                  (item) => item.name !== choice.name,
-                                ),
-                              };
+                              const updated = current.filter(
+                                (item) => item.name !== choice.name,
+                              );
+
+                              const next = { ...prev };
+
+                              if (updated.length === 0) {
+                                delete next[opt.title];
+                              } else {
+                                next[opt.title] = updated;
+                              }
+
+                              return next;
                             }
                           });
                         }}
@@ -239,19 +246,28 @@ export default function ProductOptionsModal({ product, onClose }) {
                               const current = prev[opt.title] || {};
                               const currentQty =
                                 current[choice.name]?.quantity || 0;
-
                               const newQty = Math.max(0, currentQty - 1);
 
-                              return {
-                                ...prev,
-                                [opt.title]: {
-                                  ...current,
-                                  [choice.name]: {
-                                    ...choice,
-                                    quantity: newQty,
-                                  },
-                                },
-                              };
+                              const updated = { ...current };
+
+                              if (newQty === 0) {
+                                delete updated[choice.name];
+                              } else {
+                                updated[choice.name] = {
+                                  ...choice,
+                                  quantity: newQty,
+                                };
+                              }
+
+                              const next = { ...prev };
+
+                              if (Object.keys(updated).length === 0) {
+                                delete next[opt.title];
+                              } else {
+                                next[opt.title] = updated;
+                              }
+
+                              return next;
                             });
                           }}
                         >
