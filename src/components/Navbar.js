@@ -2,133 +2,69 @@
 import { useState } from "react";
 import Cart from "./Cart";
 import { useCartStore } from "@/stores/useCartStore";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-export default function Navbar({ restaurantOpen = true }) {
+export default function Navbar({ restaurantOpen = true, slug = "" }) {
   const [cartOpen, setCartOpen] = useState(false);
   const cart = useCartStore((state) => state.cart);
+  const pathname = usePathname();
+
+  const enPedidos = pathname?.endsWith("/pedidos");
 
   if (!restaurantOpen) return null;
 
   return (
     <>
-      {/* BARRA INFERIOR DE TABS*/}
-      <div className="fixed inset-x-0 mx-auto w-full max-w-[420px] bottom-0 left-0 w-full bg-white z-20 h-[80px] flex justify-around items-center shadow-[0_-2px_10px_rgba(0,0,0,0.08)] ">
+      <div className="fixed inset-x-0 mx-auto w-full max-w-[420px] bottom-0 left-0 bg-white z-20 h-[80px] flex justify-around items-center shadow-[0_-2px_10px_rgba(0,0,0,0.08)]">
+
+        {/* BOTON CARRITO */}
         <button
           onClick={() => setCartOpen(true)}
           className="top-[-25px] cursor-pointer absolute flex items-center justify-center bg-[var(--accent-color)] rounded-[100px] w-14 h-14 shadow-[0_3px_20px_var(--accent-color)]"
         >
-          {cart.length > 0 ? (
-            <>
-              <div className="flex absolute top-[-3] left-[33] font-bold w-7 h-7 items-center justify-center text-sm text-white rounded-[100px] bg-black">
-                {cart.length}
-              </div>
-            </>
-          ) : (
-            <></>
+          {cart.length > 0 && (
+            <div className="flex absolute top-[-3px] left-[33px] font-bold w-7 h-7 items-center justify-center text-sm text-white rounded-[100px] bg-black">
+              {cart.length}
+            </div>
           )}
-
-          <svg
-            className="absolute w-6 "
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M2.08416 2.7512C2.22155 2.36044 2.6497 2.15503 3.04047 2.29242L3.34187 2.39838C3.95839 2.61511 4.48203 2.79919 4.89411 3.00139C5.33474 3.21759 5.71259 3.48393 5.99677 3.89979C6.27875 4.31243 6.39517 4.76515 6.4489 5.26153C6.47295 5.48373 6.48564 5.72967 6.49233 6H17.1305C18.8155 6 20.3323 6 20.7762 6.57708C21.2202 7.15417 21.0466 8.02369 20.6995 9.76275L20.1997 12.1875C19.8846 13.7164 19.727 14.4808 19.1753 14.9304C18.6236 15.38 17.8431 15.38 16.2821 15.38H10.9792C8.19028 15.38 6.79583 15.38 5.92943 14.4662C5.06302 13.5523 4.99979 12.5816 4.99979 9.64L4.99979 7.03832C4.99979 6.29837 4.99877 5.80316 4.95761 5.42295C4.91828 5.0596 4.84858 4.87818 4.75832 4.74609C4.67026 4.61723 4.53659 4.4968 4.23336 4.34802C3.91052 4.18961 3.47177 4.03406 2.80416 3.79934L2.54295 3.7075C2.15218 3.57012 1.94678 3.14197 2.08416 2.7512Z"
-              fill="#ffffff"
-            />
-            <path
-              d="M7.5 18C8.32843 18 9 18.6716 9 19.5C9 20.3284 8.32843 21 7.5 21C6.67157 21 6 20.3284 6 19.5C6 18.6716 6.67157 18 7.5 18Z"
-              fill="#ffffff"
-            />
-            <path
-              d="M16.5 18.0001C17.3284 18.0001 18 18.6716 18 19.5001C18 20.3285 17.3284 21.0001 16.5 21.0001C15.6716 21.0001 15 20.3285 15 19.5001C15 18.6716 15.6716 18.0001 16.5 18.0001Z"
-              fill="#ffffff"
-            />
+          <svg className="absolute w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2.08416 2.7512C2.22155 2.36044 2.6497 2.15503 3.04047 2.29242L3.34187 2.39838C3.95839 2.61511 4.48203 2.79919 4.89411 3.00139C5.33474 3.21759 5.71259 3.48393 5.99677 3.89979C6.27875 4.31243 6.39517 4.76515 6.4489 5.26153C6.47295 5.48373 6.48564 5.72967 6.49233 6H17.1305C18.8155 6 20.3323 6 20.7762 6.57708C21.2202 7.15417 21.0466 8.02369 20.6995 9.76275L20.1997 12.1875C19.8846 13.7164 19.727 14.4808 19.1753 14.9304C18.6236 15.38 17.8431 15.38 16.2821 15.38H10.9792C8.19028 15.38 6.79583 15.38 5.92943 14.4662C5.06302 13.5523 4.99979 12.5816 4.99979 9.64L4.99979 7.03832C4.99979 6.29837 4.99877 5.80316 4.95761 5.42295C4.91828 5.0596 4.84858 4.87818 4.75832 4.74609C4.67026 4.61723 4.53659 4.4968 4.23336 4.34802C3.91052 4.18961 3.47177 4.03406 2.80416 3.79934L2.54295 3.7075C2.15218 3.57012 1.94678 3.14197 2.08416 2.7512Z" fill="#ffffff"/>
+            <path d="M7.5 18C8.32843 18 9 18.6716 9 19.5C9 20.3284 8.32843 21 7.5 21C6.67157 21 6 20.3284 6 19.5C6 18.6716 6.67157 18 7.5 18Z" fill="#ffffff"/>
+            <path d="M16.5 18.0001C17.3284 18.0001 18 18.6716 18 19.5001C18 20.3285 17.3284 21.0001 16.5 21.0001C15.6716 21.0001 15 20.3285 15 19.5001C15 18.6716 15.6716 18.0001 16.5 18.0001Z" fill="#ffffff"/>
           </svg>
         </button>
 
-        <div className="cursor-pointer  flex flex-col items-center justify-center text-[var(--accent-color)]">
-          <svg
-            className="w-8"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
+        {/* INICIO */}
+        <Link href={`/${slug}`} className="cursor-pointer flex flex-col items-center justify-center" style={{ color: enPedidos ? "var(--gray-color)" : "var(--accent-color)" }}>
+          <svg className="w-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               fillRule="evenodd"
               clipRule="evenodd"
               d="M2.5192 7.82274C2 8.77128 2 9.91549 2 12.2039V13.725C2 17.6258 2 19.5763 3.17157 20.7881C4.34315 22 6.22876 22 10 22H14C17.7712 22 19.6569 22 20.8284 20.7881C22 19.5763 22 17.6258 22 13.725V12.2039C22 9.91549 22 8.77128 21.4808 7.82274C20.9616 6.87421 20.0131 6.28551 18.116 5.10812L16.116 3.86687C14.1106 2.62229 13.1079 2 12 2C10.8921 2 9.88939 2.62229 7.88403 3.86687L5.88403 5.10813C3.98695 6.28551 3.0384 6.87421 2.5192 7.82274ZM9 17.25C8.58579 17.25 8.25 17.5858 8.25 18C8.25 18.4142 8.58579 18.75 9 18.75H15C15.4142 18.75 15.75 18.4142 15.75 18C15.75 17.5858 15.4142 17.25 15 17.25H9Z"
-              fill="var(--accent-color)"
+              fill={enPedidos ? "var(--gray-color)" : "var(--accent-color)"}
             />
           </svg>
           Inicio
-        </div>
+        </Link>
 
-        <div className="hidden cursor-pointer flex flex-col items-center justify-center text-[var(--gray-color)]">
-          <svg
-            className="w-8 icon glyp"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            id="discount"
-          >
-            <path
-              d="M21.59,9.83A4.21,4.21,0,0,1,21.17,9,4.73,4.73,0,0,1,21,8.07a4.19,4.19,0,0,0-.64-2.16,4.15,4.15,0,0,0-1.87-1.28,4.36,4.36,0,0,1-.84-.43A4.55,4.55,0,0,1,17,3.54a4.29,4.29,0,0,0-1.81-1.4A4.19,4.19,0,0,0,13,2.21a4.24,4.24,0,0,1-1.94,0A4.19,4.19,0,0,0,8.8,2.14,4.29,4.29,0,0,0,7,3.54a4.55,4.55,0,0,1-.66.66,4.36,4.36,0,0,1-.84.43A4.15,4.15,0,0,0,3.62,5.91,4.19,4.19,0,0,0,3,8.07,4.73,4.73,0,0,1,2.83,9a4.21,4.21,0,0,1-.42.81A4.3,4.3,0,0,0,1.64,12a4.3,4.3,0,0,0,.77,2.17,4.21,4.21,0,0,1,.42.81,4.73,4.73,0,0,1,.15.95,4.19,4.19,0,0,0,.64,2.16,4.15,4.15,0,0,0,1.87,1.28,4.36,4.36,0,0,1,.84.43,4.55,4.55,0,0,1,.66.66,4.29,4.29,0,0,0,1.81,1.4,2.91,2.91,0,0,0,.87.13,6,6,0,0,0,1.36-.2,4.24,4.24,0,0,1,1.94,0,4.19,4.19,0,0,0,2.23.07A4.29,4.29,0,0,0,17,20.46a4.55,4.55,0,0,1,.66-.66,4.36,4.36,0,0,1,.84-.43,4.15,4.15,0,0,0,1.87-1.28A4.19,4.19,0,0,0,21,15.93a4.73,4.73,0,0,1,.15-.95,4.21,4.21,0,0,1,.42-.81A4.3,4.3,0,0,0,22.36,12,4.3,4.3,0,0,0,21.59,9.83ZM9.5,8A1.5,1.5,0,1,1,8,9.5,1.5,1.5,0,0,1,9.5,8Zm5,8A1.5,1.5,0,1,1,16,14.5,1.5,1.5,0,0,1,14.5,16Zm1.21-6.29-6,6a1,1,0,0,1-1.42,0,1,1,0,0,1,0-1.42l6-6a1,1,0,0,1,1.42,1.42Z"
-              style={{ fill: "var(--gray-color)" }}
-            ></path>
-          </svg>
-          Cupones
-        </div>
-
-        <div className="cursor-pointer flex flex-col items-center justify-center text-[var(--gray-color)]">
-          <svg
-            className="w-8"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
+        {/* PEDIDOS */}
+        <Link href={`/${slug}/pedidos`} className="cursor-pointer flex flex-col items-center justify-center" style={{ color: enPedidos ? "var(--accent-color)" : "var(--gray-color)" }}>
+          <svg className="w-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M2 5C2 4.05719 2 3.58579 2.29289 3.29289C2.58579 3 3.05719 3 4 3H20C20.9428 3 21.4142 3 21.7071 3.29289C22 3.58579 22 4.05719 22 5C22 5.94281 22 6.41421 21.7071 6.70711C21.4142 7 20.9428 7 20 7H4C3.05719 7 2.58579 7 2.29289 6.70711C2 6.41421 2 5.94281 2 5Z"
-              fill="var(--gray-color)"
+              fill={enPedidos ? "var(--accent-color)" : "var(--gray-color)"}
             />
             <path
               fillRule="evenodd"
               clipRule="evenodd"
               d="M20.0689 8.49993C20.2101 8.49999 20.3551 8.50005 20.5 8.49805V12.9999C20.5 16.7711 20.5 18.6568 19.3284 19.8283C18.1569 20.9999 16.2712 20.9999 12.5 20.9999H11.5C7.72876 20.9999 5.84315 20.9999 4.67157 19.8283C3.5 18.6568 3.5 16.7711 3.5 12.9999V8.49805C3.64488 8.50005 3.78999 8.49999 3.93114 8.49993H20.0689ZM9 11.9999C9 11.5339 9 11.301 9.07612 11.1172C9.17761 10.8722 9.37229 10.6775 9.61732 10.576C9.80109 10.4999 10.0341 10.4999 10.5 10.4999H13.5C13.9659 10.4999 14.1989 10.4999 14.3827 10.576C14.6277 10.6775 14.8224 10.8722 14.9239 11.1172C15 11.301 15 11.5339 15 11.9999C15 12.4658 15 12.6988 14.9239 12.8826C14.8224 13.1276 14.6277 13.3223 14.3827 13.4238C14.1989 13.4999 13.9659 13.4999 13.5 13.4999H10.5C10.0341 13.4999 9.80109 13.4999 9.61732 13.4238C9.37229 13.3223 9.17761 13.1276 9.07612 12.8826C9 12.6988 9 12.4658 9 11.9999Z"
-              fill="var(--gray-color)"
+              fill={enPedidos ? "var(--accent-color)" : "var(--gray-color)"}
             />
           </svg>
           Pedidos
-        </div>
+        </Link>
 
-        <div className="hidden cursor-pointer flex flex-col items-center justify-center text-[var(--gray-color)]">
-          <svg
-            className="w-8"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <g id="style=fill">
-              <g id="profile">
-                <path
-                  id="vector (Stroke)"
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M6.75 6.5C6.75 3.6005 9.1005 1.25 12 1.25C14.8995 1.25 17.25 3.6005 17.25 6.5C17.25 9.3995 14.8995 11.75 12 11.75C9.1005 11.75 6.75 9.3995 6.75 6.5Z"
-                  fill="var(--gray-color)"
-                />
-                <path
-                  id="rec (Stroke)"
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M4.25 18.5714C4.25 15.6325 6.63249 13.25 9.57143 13.25H14.4286C17.3675 13.25 19.75 15.6325 19.75 18.5714C19.75 20.8792 17.8792 22.75 15.5714 22.75H8.42857C6.12081 22.75 4.25 20.8792 4.25 18.5714Z"
-                  fill="var(--gray-color)"
-                />
-              </g>
-            </g>
-          </svg>
-          Perfil
-        </div>
       </div>
       {cartOpen && <Cart onClose={() => setCartOpen(false)} />}
     </>

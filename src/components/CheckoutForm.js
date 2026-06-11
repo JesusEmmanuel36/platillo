@@ -153,7 +153,7 @@ export default function CheckoutForm({ restaurant }) {
       });
 
       const data = await res.json();
-      console.log(data)
+      console.log(data);
 
       if (!data.ok) {
         setCardError(data.error || "Error al crear pedido");
@@ -201,8 +201,36 @@ export default function CheckoutForm({ restaurant }) {
         }
 
         console.log("✅ Pago exitoso, orden:");
+
+        const pedidosGuardados = JSON.parse(
+          localStorage.getItem("platillo_orders") || "[]",
+        );
+        pedidosGuardados.push({
+          orderId: data.orderId,
+          restaurantSlug: restaurant.slug,
+          creadoEn: new Date().toISOString(),
+        });
+        localStorage.setItem(
+          "platillo_orders",
+          JSON.stringify(pedidosGuardados),
+        );
+        window.location.href = `/${restaurant.slug}/pedidos`;
       } else {
         console.log("✅ Orden creada:");
+
+        const pedidosGuardados = JSON.parse(
+          localStorage.getItem("platillo_orders") || "[]",
+        );
+        pedidosGuardados.push({
+          orderId: data.orderId,
+          restaurantSlug: restaurant.slug,
+          creadoEn: new Date().toISOString(),
+        });
+        localStorage.setItem(
+          "platillo_orders",
+          JSON.stringify(pedidosGuardados),
+        );
+        window.location.href = `/${restaurant.slug}/pedidos`;
       }
     } finally {
       setLoading(false);

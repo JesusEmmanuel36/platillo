@@ -44,6 +44,13 @@ function estaDentroDelHorario(restaurant) {
   return minutosAhora >= minutosApertura && minutosAhora <= minutosCierre;
 }
 
+function a12h(hora24) {
+  const [h, m] = hora24.split(":").map(Number);
+  const ampm = h >= 12 ? "pm" : "am";
+  const h12 = h % 12 || 12;
+  return `${h12}:${m.toString().padStart(2, "0")} ${ampm}`;
+}
+
 export default function RestaurantPage({ restaurant, products }) {
   const [locationDivOpen, setLocationDivOpen] = useState(false);
   const [OpeningDivOpen, setOpeningDivOpen] = useState(false);
@@ -334,11 +341,11 @@ export default function RestaurantPage({ restaurant, products }) {
                         <td className="px-4 py-1">{h.dia}</td>
 
                         <td className="px-4 py-1 font-semibold">
-                          {h.abierto ? h.apertura : "Cerrado"}
+                          {h.abierto ? a12h(h.apertura) : "Cerrado"}
                         </td>
 
                         <td className="px-4 py-1 font-semibold">
-                          {h.abierto ? h.cierre : "Cerrado"}
+                          {h.abierto ? a12h(h.cierre) : "Cerrado"}
                         </td>
                       </tr>
                     ))
@@ -365,8 +372,7 @@ export default function RestaurantPage({ restaurant, products }) {
         </div>
       )}
 
-      <Navbar restaurantOpen={restauranteDisponible} />
-
+      <Navbar restaurantOpen={restauranteDisponible} slug={restaurant.slug} />
       {/* DIV MODAL PRODUCT OPTIONS*/}
 
       {selectedProduct && (
