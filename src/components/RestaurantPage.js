@@ -172,7 +172,7 @@ export default function RestaurantPage({ restaurant, products }) {
             src={restaurant.pfp}
           ></img>
 
-          <div className="flex flex-col w-full justify-between">
+          <div className="flex flex-col w-full gap-1 justify-center">
             <h1>{restaurant.name}</h1>
             <p className="text-[15px] text-[var(--gray-color)]">
               {restaurant.address}
