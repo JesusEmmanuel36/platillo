@@ -153,12 +153,12 @@ export default function PedidosPage() {
       <div className="flex flex-col gap-3 p-3 pb-[calc(100px+env(safe-area-inset-bottom))]">
         {orderIds.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-2">
-            <p className="text-[16px] font-semibold text-[#1a1a1a]">Sin pedidos</p>
-            <p className="text-[14px] text-[var(--gray-color)] text-center">
+            <p className="text-[17px] font-semibold text-[#1a1a1a]">Sin pedidos</p>
+            <p className="text-[15px] text-[var(--gray-color)] text-center">
               Aún no tienes pedidos en este restaurante
             </p>
             <Link href={`/${slug}`}>
-              <button className="mt-4 bg-[var(--accent-color)] text-white px-6 py-2 rounded-[10px] text-[14px] font-semibold">
+              <button className="mt-4 bg-[var(--accent-color)] text-white px-6 py-2 rounded-[5px] text-[16px] font-semibold cursor-pointer">
                 Ver menú
               </button>
             </Link>
