@@ -72,14 +72,31 @@ export default function RestaurantPage({ restaurant, products }) {
     }));
   };
 
-useEffect(() => {
-  if (restaurant?.accent_color) {
-    document.documentElement.style.setProperty("--accent-color", restaurant.accent_color);
-  }
-  if (restaurant?.light_accent) {
-    document.documentElement.style.setProperty("--light-accent", restaurant.light_accent);
-  }
-}, []);
+  useEffect(() => {
+    if (restaurant?.accent_color) {
+      document.documentElement.style.setProperty(
+        "--accent-color",
+        restaurant.accent_color,
+      );
+    }
+    if (restaurant?.light_accent) {
+      document.documentElement.style.setProperty(
+        "--light-accent",
+        restaurant.light_accent,
+      );
+    }
+    if (restaurant?.pfp) {
+      const link =
+        document.querySelector("link[rel='icon']") ||
+        document.createElement("link");
+      link.rel = "icon";
+      link.href = restaurant.pfp;
+      document.head.appendChild(link);
+    }
+    if (restaurant?.name) {
+      document.title = restaurant.name;
+    }
+  }, []);
 
   return (
     <div className="relative max-w-[420px] mx-auto bg-black h-[100dvh] flex flex-col">
