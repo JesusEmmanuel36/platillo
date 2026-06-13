@@ -3,8 +3,6 @@ import { NextResponse } from "next/server";
 
 const REAL_ROUTES = ["/", "/gordo"];
 
-
-
 export function middleware(req) {
   const host = req.headers.get("host");
   const { pathname } = req.nextUrl;

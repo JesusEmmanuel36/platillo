@@ -72,6 +72,15 @@ export default function RestaurantPage({ restaurant, products }) {
     }));
   };
 
+useEffect(() => {
+  if (restaurant?.accent_color) {
+    document.documentElement.style.setProperty("--accent-color", restaurant.accent_color);
+  }
+  if (restaurant?.light_accent) {
+    document.documentElement.style.setProperty("--light-accent", restaurant.light_accent);
+  }
+}, []);
+
   return (
     <div className="relative max-w-[420px] mx-auto bg-black h-[100dvh] flex flex-col">
       {/* Imagen */}
