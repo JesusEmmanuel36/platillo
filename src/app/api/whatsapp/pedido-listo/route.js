@@ -19,7 +19,8 @@ export async function POST(req) {
       return Response.json({ error: "Falta orderId" }, { status: 400 });
     }
 
-    const orderRef = adminDb.collection("orders").doc(orderId);
+    // 👇 CAMBIADO
+    const orderRef = db.collection("orders").doc(orderId);
     const orderSnap = await orderRef.get();
 
     if (!orderSnap.exists) {
@@ -28,7 +29,8 @@ export async function POST(req) {
 
     const order = orderSnap.data();
 
-    const restaurantRef = adminDb.collection("restaurants").doc(order.restaurantId);
+    // 👇 CAMBIADO
+    const restaurantRef = db.collection("restaurants").doc(order.restaurantId);
     const restaurantSnap = await restaurantRef.get();
 
     if (!restaurantSnap.exists) {
