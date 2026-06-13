@@ -269,11 +269,11 @@ export default function RestaurantPage({ restaurant, products }) {
               </div>
 
               {/* Grid de productos */}
-              <div
-                className={`grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4 transition-all duration-300 ${
-                  isOpen ? "max-h-[2000px]" : "overflow-hidden max-h-0 "
-                }`}
-              >
+<div
+  className={`flex flex-col gap-3 transition-all duration-300 ${
+    isOpen ? "max-h-[2000px]" : "overflow-hidden max-h-0"
+  }`}
+>
                 {productsByCategory.map((product, i) => (
                   <ProductCard
                     key={i}

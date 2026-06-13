@@ -1,0 +1,23 @@
+              <div
+                className={`grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4 transition-all duration-300 ${
+                  isOpen ? "max-h-[2000px]" : "overflow-hidden max-h-0 "
+                }`}
+              >
+                {productsByCategory.map((product, i) => (
+                  <ProductCard
+                    key={i}
+                    name={product.name}
+                    price={product.price}
+                    stock={product.stock}
+                    description={product.description}
+                    image={product.image}
+                    category={product.category}
+                    priceType={product.priceType}
+                    restaurantOpen={restauranteDisponible}
+                    onAdd={() => {
+                      if (!restauranteDisponible) return;
+                      setSelectedProduct(product);
+                    }}
+                  />
+                ))}
+              </div>
