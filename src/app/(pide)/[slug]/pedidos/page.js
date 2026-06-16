@@ -22,6 +22,12 @@ const statusConfig = {
     color: "text-[#2e7d32]",
     dot: "bg-[#2e7d32]",
   },
+  en_camino: {
+    label: "Pedido listo",
+    bg: "bg-[#ceffd2]",
+    color: "text-[#2e7d32]",
+    dot: "bg-[#2e7d32]",
+  },
   cancelado: {
     label: "Pedido cancelado",
     bg: "bg-[#ffa6a6]",
@@ -30,7 +36,17 @@ const statusConfig = {
   },
 };
 
-const TERMINADOS = ["listo", "cancelado"];
+function getDescripcion(status, entregaTipo) {
+  if (status === "cancelado") return null;
+  if (status === "en_camino") return "Tu pedido va en camino a tu domicilio 🛵";
+  if (status === "listo") {
+    if (entregaTipo === "local") return "Ya puedes pasar a recoger tu pedido cuando gustes 🙌";
+    if (entregaTipo === "domicilio") return "Tu pedido va en camino a tu domicilio 🛵";
+  }
+  return null;
+}
+
+const TERMINADOS = ["listo", "cancelado", "en_camino"];
 
 function PedidoCard({ orderId, onStatusChange }) {
   const [pedido, setPedido] = useState(null);
@@ -81,6 +97,8 @@ function PedidoCard({ orderId, onStatusChange }) {
     minute: "2-digit",
   });
 
+  const descripcion = getDescripcion(pedido.status, pedido.entrega?.tipo);
+
   return (
     <div className="bg-white rounded-[5px] shadow-[0_0px_5px_rgba(0,0,0,0.25)] flex flex-col p-0 gap-2">
       <div className="p-4 flex flex-col gap-2">
@@ -110,6 +128,13 @@ function PedidoCard({ orderId, onStatusChange }) {
           <p>{pedido.entrega?.tipo === "local" ? "Recoge en local" : "Envío a domicilio"}</p>
           <p className="text-black text-[16px]">${pedido.total} MXN</p>
         </div>
+
+        {/* Descripción de estado */}
+        {descripcion && (
+          <div className={`text-[12px] px-3 py-2 rounded-[6px] ${cfg.bg} ${cfg.color}`}>
+            {descripcion}
+          </div>
+        )}
 
         {/* Razón cancelación */}
         {pedido.status === "cancelado" && pedido.razonCancelacion && (
