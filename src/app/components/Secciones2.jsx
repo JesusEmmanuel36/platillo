@@ -1,4 +1,30 @@
 // Sección: Comparación vs WhatsApp
+
+function IconoCheck({ color = "currentColor", size = 24, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+      <path
+        d="M9 12L10.5 13.5V13.5C10.7761 13.7761 11.2239 13.7761 11.5 13.5V13.5L15 10"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconoCross({ color = "currentColor", size = 24, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" className={className}>
+      <path
+        d="M18.8,16l5.5-5.5c0.8-0.8,0.8-2,0-2.8l0,0C24,7.3,23.5,7,23,7c-0.5,0-1,0.2-1.4,0.6L16,13.2l-5.5-5.5 c-0.8-0.8-2.1-0.8-2.8,0C7.3,8,7,8.5,7,9.1s0.2,1,0.6,1.4l5.5,5.5l-5.5,5.5C7.3,21.9,7,22.4,7,23c0,0.5,0.2,1,0.6,1.4 C8,24.8,8.5,25,9,25c0.5,0,1-0.2,1.4-0.6l5.5-5.5l5.5,5.5c0.8,0.8,2.1,0.8,2.8,0c0.8-0.8,0.8-2.1,0-2.8L18.8,16z"
+        fill={color}
+      />
+    </svg>
+  );
+}
+
 export function ComparacionWA() {
   const filas = [
     { feature: "Tomar pedidos manualmente", wa: false, platillo: false, platilloTxt: "Automático" },
@@ -9,11 +35,15 @@ export function ComparacionWA() {
     { feature: "Escala sin contratar más personal", wa: false, platillo: true },
   ];
 
-  const Check = () => (
-    <span style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", width:28, height:28, background:"#ceffd2", color:"#2e7d32", borderRadius:"50%", fontSize:14, fontWeight:700, fontFamily:"Onest,sans-serif" }}>✓</span>
+const Check = () => (
+    <span style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", width:28, height:28, background:"#ceffd2", color:"#2e7d32", borderRadius:"50%", fontSize:14, fontWeight:700, fontFamily:"Onest,sans-serif" }}>
+      <IconoCheck size={28} color="#2e7d32" />
+    </span>
   );
   const Cross = () => (
-    <span style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", width:28, height:28, background:"#ffa3a3", color:"#d21616", borderRadius:"50%", fontSize:14, fontWeight:700, fontFamily:"Onest,sans-serif" }}>✗</span>
+    <span style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", width:28, height:28, background:"#ffa3a3", color:"#d21616", borderRadius:"50%", fontSize:14, fontWeight:700, fontFamily:"Onest,sans-serif" }}>
+      <IconoCross size={14} color="#d21616" />
+    </span>
   );
 
   return (
@@ -32,12 +62,12 @@ export function ComparacionWA() {
                 <th style={{ width: "40%", padding: "20px 24px", textAlign: "left", background: "#fafafa", fontSize: 14, fontWeight: 600, color: "#929292" }}></th>
                 <th style={{ width: "30%", padding: "20px 24px", textAlign: "center", background: "#fafafa" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 15, fontWeight: 700 }}>
-                    <span>💬</span> WhatsApp
+                    WhatsApp
                   </div>
                 </th>
                 <th style={{ width: "30%", padding: "20px 24px", textAlign: "center", background: "#fff7f5" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 15, fontWeight: 700 }}>
-                    <span style={{ color: "#ed400b" }}>●</span> Platillo
+                    <img src="/logo.png" className="w-14" alt="" />
                   </div>
                 </th>
               </tr>
@@ -78,8 +108,8 @@ export function Comisiones() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20, alignItems: "start" }} className="comisiones-grid">
           {/* Rappi */}
           {[
-            { icon: "🟠", name: "Rappi", pct: "~30%", ejemplo: "En $1,000 MXN de ventas, pagas ~$300 MXN de comisión." },
-            { icon: "🟡", name: "Didi Food", pct: "~25%", ejemplo: "En $1,000 MXN de ventas, pagas ~$250 MXN de comisión." },
+            { icon: "", name: "Rappi", pct: "~30%", ejemplo: "En $1,000 MXN de ventas, pagas ~$300 MXN de comisión." },
+            { icon: "", name: "Didi Food", pct: "~25%", ejemplo: "En $1,000 MXN de ventas, pagas ~$250 MXN de comisión." },
           ].map((comp, i) => (
             <div key={i} style={{ background: "#fff", border: "1px solid #ededed", borderRadius: 20, padding: "32px 26px", textAlign: "center", opacity: 0.85 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 20 }}>
@@ -98,8 +128,7 @@ export function Comisiones() {
           <div style={{ background: "#fff", border: "2px solid #ed400b", borderRadius: 20, padding: "32px 26px", textAlign: "center", position: "relative", boxShadow: "0 12px 40px rgba(237,64,11,0.12)" }}>
             <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "#ed400b", color: "#fff", fontSize: 12, fontWeight: 700, padding: "4px 16px", borderRadius: 100, whiteSpace: "nowrap", fontFamily: "Onest, sans-serif" }}>Recomendado</div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 20 }}>
-              <span style={{ color: "#ed400b", fontSize: 18 }}>●</span>
-              <span style={{ fontSize: 17, fontWeight: 800, color: "#000", fontFamily: "Onest, sans-serif" }}>Platillo</span>
+              <img src="logo.png" className="w-16" alt="" />
             </div>
             <div style={{ fontSize: 64, fontWeight: 900, color: "#000", letterSpacing: -3, lineHeight: 1, marginBottom: 4, fontFamily: "Onest, sans-serif" }}>$350</div>
             <p style={{ fontSize: 13, color: "#929292", marginBottom: 20, fontFamily: "Onest, sans-serif" }}>MXN fijos al mes</p>
@@ -111,6 +140,8 @@ export function Comisiones() {
             </div>
           </div>
         </div>
+
+        
         <p style={{ fontSize: 12, color: "#cbcbcb", textAlign: "center", marginTop: 28, fontFamily: "Onest, sans-serif" }}>* Porcentajes aproximados. Pueden variar según contrato con cada plataforma.</p>
       </div>
       <style>{`
