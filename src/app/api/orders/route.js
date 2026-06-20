@@ -158,7 +158,7 @@ async function enviarNotificacionPush(token, pedido) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         to: token,
-        title: "🍽️ Nuevo pedido",
+        title: "Nuevo pedido",
         body: `${pedido.cliente.nombre} · $${pedido.total}`,
         sound: "default",
         priority: "high",
