@@ -1,7 +1,6 @@
 "use client";
 
-
-import { useEffect, useState } from "react"; 
+import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import Link from "next/link";
@@ -38,8 +37,10 @@ function getDescripcion(status, entregaTipo) {
   if (status === "cancelado") return null;
   if (status === "en_camino") return "Tu pedido va en camino a tu domicilio 🛵";
   if (status === "listo") {
-    if (entregaTipo === "local") return "Ya puedes pasar a recoger tu pedido cuando gustes 🙌";
-    if (entregaTipo === "domicilio") return "Tu pedido va en camino a tu domicilio 🛵";
+    if (entregaTipo === "local")
+      return "Ya puedes pasar a recoger tu pedido cuando gustes 🙌";
+    if (entregaTipo === "domicilio")
+      return "Tu pedido va en camino a tu domicilio 🛵";
   }
   return null;
 }
@@ -74,7 +75,9 @@ function PedidoCard({ orderId, onStatusChange }) {
   if (!pedido) {
     return (
       <div className="bg-white rounded-[5px] shadow-[0_0px_5px_rgba(0,0,0,0.25)] p-4">
-        <p className="text-[14px] text-[var(--gray-color)]">Pedido no encontrado</p>
+        <p className="text-[14px] text-[var(--gray-color)]">
+          Pedido no encontrado
+        </p>
       </div>
     );
   }
@@ -102,11 +105,15 @@ function PedidoCard({ orderId, onStatusChange }) {
       <div className="p-4 flex flex-col gap-2">
         {/* Status y hora */}
         <div className="flex justify-between items-center">
-          <div className={`text-[12px] flex flex-row items-center gap-1 rounded-[10px] px-2 py-[2px] ${cfg.bg} ${cfg.color}`}>
+          <div
+            className={`text-[12px] flex flex-row items-center gap-1 rounded-[10px] px-2 py-[2px] ${cfg.bg} ${cfg.color}`}
+          >
             <div className={`w-2 h-2 rounded-full ${cfg.dot} mr-1`} />
             {cfg.label}
           </div>
-          <p className="text-[13px] text-[var(--gray-color)]">{horaFormateada}</p>
+          <p className="text-[13px] text-[var(--gray-color)]">
+            {horaFormateada}
+          </p>
         </div>
 
         {/* Items */}
@@ -123,13 +130,19 @@ function PedidoCard({ orderId, onStatusChange }) {
 
         {/* Entrega y total */}
         <div className="flex justify-between items-center text-[14px] text-[var(--gray-color)]">
-          <p>{pedido.entrega?.tipo === "local" ? "Recoge en local" : "Envío a domicilio"}</p>
+          <p>
+            {pedido.entrega?.tipo === "local"
+              ? "Recoge en local"
+              : "Envío a domicilio"}
+          </p>
           <p className="text-black text-[16px]">${pedido.total} MXN</p>
         </div>
 
         {/* Descripción de estado */}
         {descripcion && (
-          <div className={`text-[12px] px-3 py-2 rounded-[6px] ${cfg.bg} ${cfg.color}`}>
+          <div
+            className={`text-[12px] px-3 py-2 rounded-[6px] ${cfg.bg} ${cfg.color}`}
+          >
             {descripcion}
           </div>
         )}
@@ -157,12 +170,30 @@ export default function PedidosPage({ restaurant, slug }) {
     setOrderIds(delRestaurante);
   }, [slug]);
 
+  useEffect(() => {
+    if (restaurant?.pfp) {
+      const link =
+        document.querySelector("link[rel='icon']") ||
+        document.createElement("link");
+      link.rel = "icon";
+      link.href = restaurant.pfp;
+      document.head.appendChild(link);
+    }
+    if (restaurant?.name) {
+      document.title = restaurant.name;
+    }
+  }, []);
+
   function handleStatusChange(orderId, status) {
     setStatuses((prev) => ({ ...prev, [orderId]: status }));
   }
 
-  const enCurso = orderIds.filter((p) => !TERMINADOS.includes(statuses[p.orderId]));
-  const anteriores = orderIds.filter((p) => TERMINADOS.includes(statuses[p.orderId]));
+  const enCurso = orderIds.filter(
+    (p) => !TERMINADOS.includes(statuses[p.orderId]),
+  );
+  const anteriores = orderIds.filter((p) =>
+    TERMINADOS.includes(statuses[p.orderId]),
+  );
 
   return (
     <div className="relative max-w-[420px] mx-auto bg-white min-h-[100dvh] flex flex-col">
@@ -175,7 +206,9 @@ export default function PedidosPage({ restaurant, slug }) {
       <div className="flex flex-col gap-3 p-3 pb-[calc(100px+env(safe-area-inset-bottom))]">
         {orderIds.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-2">
-            <p className="text-[17px] font-semibold text-[#1a1a1a]">Sin pedidos</p>
+            <p className="text-[17px] font-semibold text-[#1a1a1a]">
+              Sin pedidos
+            </p>
             <p className="text-[15px] text-[var(--gray-color)] text-center">
               Aún no tienes pedidos en este restaurante
             </p>
