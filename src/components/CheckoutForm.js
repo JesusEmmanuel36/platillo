@@ -39,6 +39,20 @@ export default function CheckoutForm({ restaurant }) {
     if (cart.length === 0) router.back();
   }, [cart, router]);
 
+  useEffect(() => {
+    if (restaurant?.pfp) {
+      const link =
+        document.querySelector("link[rel='icon']") ||
+        document.createElement("link");
+      link.rel = "icon";
+      link.href = restaurant.pfp;
+      document.head.appendChild(link);
+    }
+    if (restaurant?.name) {
+      document.title = restaurant.name;
+    }
+  }, []);
+
   function optionsToString(options) {
     if (!options) return "";
 
