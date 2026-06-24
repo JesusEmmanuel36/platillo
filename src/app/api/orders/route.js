@@ -16,8 +16,18 @@ function estaAbierto(restaurante) {
   if (restaurante.alwaysOpen) return true;
   if (!restaurante.isOpen) return false;
 
-  const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-  const mx = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Monterrey" }));
+  const dias = [
+    "Domingo",
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
+  ];
+  const mx = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "America/Monterrey" }),
+  );
   const diaActual = dias[mx.getDay()];
   const horaActual = mx.getHours() * 60 + mx.getMinutes();
 
@@ -33,18 +43,21 @@ function estaAbierto(restaurante) {
 function validarCliente(cliente) {
   if (!cliente || typeof cliente !== "object") return "Cliente inválido.";
   if (!esStringValido(cliente.nombre)) return "Nombre del cliente inválido.";
-  if (!/^\d{10}$/.test(cliente.telefono)) return "Teléfono inválido (10 dígitos requeridos).";
+  if (!/^\d{10}$/.test(cliente.telefono))
+    return "Teléfono inválido (10 dígitos requeridos).";
   return null;
 }
 
 function validarEntrega(entrega) {
   if (!entrega || typeof entrega !== "object") return "Entrega inválida.";
-  if (!["domicilio", "local"].includes(entrega.tipo)) return "Tipo de entrega inválido.";
+  if (!["domicilio", "local"].includes(entrega.tipo))
+    return "Tipo de entrega inválido.";
   if (entrega.tipo === "domicilio") {
     if (!esStringValido(entrega.calle)) return "Calle obligatoria.";
     if (!esStringValido(entrega.numero)) return "Número obligatorio.";
     if (!esStringValido(entrega.colonia)) return "Colonia obligatoria.";
-    if (!/^\d{5}$/.test(entrega.postal)) return "Código postal inválido (5 dígitos).";
+    if (!/^\d{5}$/.test(entrega.postal))
+      return "Código postal inválido (5 dígitos).";
   }
   return null;
 }
@@ -80,9 +93,13 @@ function calcularPrecioItem(productoDB, itemFrontend) {
         errores.push(`"${titulo}" debe ser un objeto.`);
         continue;
       }
-      const choiceDB = grupoDB.choices.find((c) => c.name === valorFrontend.name);
+      const choiceDB = grupoDB.choices.find(
+        (c) => c.name === valorFrontend.name,
+      );
       if (!choiceDB) {
-        errores.push(`Opción "${valorFrontend.name}" no existe en "${titulo}".`);
+        errores.push(
+          `Opción "${valorFrontend.name}" no existe en "${titulo}".`,
+        );
         continue;
       }
       if (esDynamic) {
@@ -98,11 +115,17 @@ function calcularPrecioItem(productoDB, itemFrontend) {
         continue;
       }
       if (valorFrontend.length > grupoDB.maxSelectable) {
-        errores.push(`"${titulo}" supera el máximo de ${grupoDB.maxSelectable} selecciones.`);
+        errores.push(
+          `"${titulo}" supera el máximo de ${grupoDB.maxSelectable} selecciones.`,
+        );
         continue;
       }
       for (const seleccion of valorFrontend) {
-        if (!seleccion || typeof seleccion !== "object" || !esStringValido(seleccion.name)) {
+        if (
+          !seleccion ||
+          typeof seleccion !== "object" ||
+          !esStringValido(seleccion.name)
+        ) {
           errores.push(`Item inválido en "${titulo}".`);
           continue;
         }
@@ -140,7 +163,9 @@ function calcularPrecioItem(productoDB, itemFrontend) {
         precio += Number(choiceDB.price) * qty;
       }
       if (totalComplementos > grupoDB.maxSelectable) {
-        errores.push(`"${titulo}" supera el máximo de ${grupoDB.maxSelectable} complementos.`);
+        errores.push(
+          `"${titulo}" supera el máximo de ${grupoDB.maxSelectable} complementos.`,
+        );
       }
     }
   }
@@ -180,81 +205,159 @@ export async function POST(req) {
     const { restaurantId, cliente, entrega, pago, items } = body;
 
     if (!esStringValido(restaurantId)) {
-      return NextResponse.json({ ok: false, error: "restaurantId inválido." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "restaurantId inválido." },
+        { status: 400 },
+      );
     }
 
     const errorCliente = validarCliente(cliente);
-    if (errorCliente) return NextResponse.json({ ok: false, error: errorCliente }, { status: 400 });
+    if (errorCliente)
+      return NextResponse.json(
+        { ok: false, error: errorCliente },
+        { status: 400 },
+      );
 
     const errorEntrega = validarEntrega(entrega);
-    if (errorEntrega) return NextResponse.json({ ok: false, error: errorEntrega }, { status: 400 });
+    if (errorEntrega)
+      return NextResponse.json(
+        { ok: false, error: errorEntrega },
+        { status: 400 },
+      );
 
     if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ ok: false, error: "El pedido no tiene items." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "El pedido no tiene items." },
+        { status: 400 },
+      );
     }
 
-    const restauranteSnap = await db.collection("restaurants").doc(restaurantId).get();
+    const restauranteSnap = await db
+      .collection("restaurants")
+      .doc(restaurantId)
+      .get();
     if (!restauranteSnap.exists) {
-      return NextResponse.json({ ok: false, error: "Restaurante no encontrado." }, { status: 404 });
+      return NextResponse.json(
+        { ok: false, error: "Restaurante no encontrado." },
+        { status: 404 },
+      );
     }
     const restaurante = restauranteSnap.data();
 
     if (!estaAbierto(restaurante)) {
-      return NextResponse.json({ ok: false, error: "El restaurante está cerrado en este momento." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "El restaurante está cerrado en este momento." },
+        { status: 400 },
+      );
     }
 
     const metodoPago = pago?.metodo;
     if (!["efectivo", "transferencia", "tarjeta"].includes(metodoPago)) {
-      return NextResponse.json({ ok: false, error: "Método de pago inválido." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Método de pago inválido." },
+        { status: 400 },
+      );
     }
 
     if (metodoPago === "efectivo" && !restaurante.paymentMethods?.cash) {
-      return NextResponse.json({ ok: false, error: "Efectivo no habilitado en este restaurante." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Efectivo no habilitado en este restaurante." },
+        { status: 400 },
+      );
     }
-    if (metodoPago === "transferencia" && !restaurante.paymentMethods?.transfer?.enabled) {
-      return NextResponse.json({ ok: false, error: "Transferencia no habilitada en este restaurante." }, { status: 400 });
+    if (
+      metodoPago === "transferencia" &&
+      !restaurante.paymentMethods?.transfer?.enabled
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Transferencia no habilitada en este restaurante.",
+        },
+        { status: 400 },
+      );
     }
     if (metodoPago === "tarjeta" && !restaurante.paymentMethods?.card) {
-      return NextResponse.json({ ok: false, error: "Tarjeta no habilitada en este restaurante." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Tarjeta no habilitada en este restaurante." },
+        { status: 400 },
+      );
     }
 
     let totalBackend = 0;
 
     for (const item of items) {
       if (!esStringValido(item.productId)) {
-        return NextResponse.json({ ok: false, error: "productId inválido." }, { status: 400 });
+        return NextResponse.json(
+          { ok: false, error: "productId inválido." },
+          { status: 400 },
+        );
       }
 
       const qty = Number(item.quantity);
       if (!Number.isInteger(qty) || qty <= 0) {
-        return NextResponse.json({ ok: false, error: `Cantidad inválida en producto ${item.productId}.` }, { status: 400 });
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `Cantidad inválida en producto ${item.productId}.`,
+          },
+          { status: 400 },
+        );
       }
 
-      const productoSnap = await db.collection("products").doc(item.productId).get();
+      const productoSnap = await db
+        .collection("products")
+        .doc(item.productId)
+        .get();
       if (!productoSnap.exists) {
-        return NextResponse.json({ ok: false, error: `Producto ${item.productId} no encontrado.` }, { status: 404 });
+        return NextResponse.json(
+          { ok: false, error: `Producto ${item.productId} no encontrado.` },
+          { status: 404 },
+        );
       }
 
       const productoDB = productoSnap.data();
 
       if (productoDB.restaurantId !== restaurantId) {
-        return NextResponse.json({ ok: false, error: `Producto ${item.productId} no pertenece a este restaurante.` }, { status: 400 });
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `Producto ${item.productId} no pertenece a este restaurante.`,
+          },
+          { status: 400 },
+        );
       }
 
       if (!productoDB.stock) {
-        return NextResponse.json({ ok: false, error: `"${productoDB.name}" no está disponible.` }, { status: 400 });
+        return NextResponse.json(
+          { ok: false, error: `"${productoDB.name}" no está disponible.` },
+          { status: 400 },
+        );
       }
 
       const { precio, errores } = calcularPrecioItem(productoDB, item);
 
-      console.log(`🧮 ${productoDB.name} — precio unitario: ${precio}, qty: ${qty}, subtotal: ${precio * qty}`);
+      console.log(
+        `🧮 ${productoDB.name} — precio unitario: ${precio}, qty: ${qty}, subtotal: ${precio * qty}`,
+      );
 
       if (errores.length > 0) {
-        return NextResponse.json({ ok: false, error: errores[0] }, { status: 400 });
+        return NextResponse.json(
+          { ok: false, error: errores[0] },
+          { status: 400 },
+        );
       }
 
       totalBackend += Number(precio) * qty;
     }
+
+    let costoEnvio = 0;
+    if (entrega.tipo === "domicilio") {
+      if (restaurante.delivery_enabled && restaurante.delivery_price) {
+        costoEnvio = Number(restaurante.delivery_price);
+      }
+    }
+    totalBackend += costoEnvio;
 
     console.log("🧾 Total backend calculado:", totalBackend);
     console.log("📤 Total recibido del frontend:", body.total);
@@ -262,16 +365,27 @@ export async function POST(req) {
     if (metodoPago === "efectivo") {
       const cambio = Number(pago.cambio);
       if (isNaN(cambio) || cambio < 0) {
-        return NextResponse.json({ ok: false, error: "Cambio inválido." }, { status: 400 });
+        return NextResponse.json(
+          { ok: false, error: "Cambio inválido." },
+          { status: 400 },
+        );
       }
       if (cambio < totalBackend) {
-        return NextResponse.json({ ok: false, error: "El cambio es menor al total del pedido." }, { status: 400 });
+        return NextResponse.json(
+          { ok: false, error: "El cambio es menor al total del pedido." },
+          { status: 400 },
+        );
       }
     }
 
     if (body.total !== totalBackend) {
-      console.warn(`⚠️ Total no coincide — frontend: $${body.total}, backend: $${totalBackend}`);
-      return NextResponse.json({ ok: false, error: "El total del pedido no coincide." }, { status: 400 });
+      console.warn(
+        `⚠️ Total no coincide — frontend: $${body.total}, backend: $${totalBackend}`,
+      );
+      return NextResponse.json(
+        { ok: false, error: "El total del pedido no coincide." },
+        { status: 400 },
+      );
     }
 
     console.log("✅ Pedido válido — total:", totalBackend);
@@ -280,7 +394,13 @@ export async function POST(req) {
     let paymentIntentId = null;
 
     if (metodoPago === "tarjeta" && !restaurante.stripeAccountId) {
-      return NextResponse.json({ ok: false, error: "Este restaurante no tiene pagos con tarjeta configurados." }, { status: 400 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Este restaurante no tiene pagos con tarjeta configurados.",
+        },
+        { status: 400 },
+      );
     }
 
     const pedidoCompleto = {
@@ -313,6 +433,7 @@ export async function POST(req) {
         options: item.options,
         note: item.note || null,
       })),
+      costoEnvio, // ← agrega esto
       total: totalBackend,
     };
 
@@ -358,15 +479,20 @@ export async function POST(req) {
     return NextResponse.json(
       {
         ok: true,
-        message: metodoPago === "tarjeta" ? "Pago preparado" : "Pedido recibido",
+        message:
+          metodoPago === "tarjeta" ? "Pago preparado" : "Pedido recibido",
         total: totalBackend,
         orderId,
-        payment: metodoPago === "tarjeta" ? { clientSecret, paymentIntentId } : null,
+        payment:
+          metodoPago === "tarjeta" ? { clientSecret, paymentIntentId } : null,
       },
       { status: 200 },
     );
   } catch (err) {
     console.error("❌ Error en /api/orders:", err);
-    return NextResponse.json({ ok: false, error: "Error interno del servidor." }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "Error interno del servidor." },
+      { status: 500 },
+    );
   }
 }

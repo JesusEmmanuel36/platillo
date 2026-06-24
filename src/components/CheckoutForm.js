@@ -26,10 +26,14 @@ export default function CheckoutForm({ restaurant }) {
 
   const cart = useCartStore((state) => state.cart);
   console.log(cart);
-  const total = cart.reduce(
-    (acc, item) => acc + item.totalPrice * item.quantity,
-    0,
-  );
+
+  const deliveryEnabled = restaurant.delivery_enabled === true;
+  const deliveryPrice = restaurant.delivery_price || 0;
+  const costoEnvio =
+    entrega === "domicilio" && deliveryEnabled ? deliveryPrice : 0;
+  const total =
+    cart.reduce((acc, item) => acc + item.totalPrice * item.quantity, 0) +
+    costoEnvio;
 
   useEffect(() => {
     if (cart.length === 0) router.back();
@@ -142,6 +146,7 @@ export default function CheckoutForm({ restaurant }) {
           note: item.note || null,
           totalPrice: item.totalPrice * item.quantity,
         })),
+        costoEnvio,
         total,
       };
 
@@ -579,6 +584,20 @@ export default function CheckoutForm({ restaurant }) {
         </div>
 
         <div className="w-full h-[1.6px] bg-[var(--half-gray)]" />
+
+        {costoEnvio > 0 && (
+          <div className="flex justify-between items-center">
+            <p className="text-[16px] text-[var(--gray-color)]">Subtotal</p>
+            <p className="text-[16px]">${total - costoEnvio} MXN</p>
+          </div>
+        )}
+
+        {costoEnvio > 0 && (
+          <div className="flex justify-between items-center">
+            <p className="text-[16px] text-[var(--gray-color)]">Envío</p>
+            <p className="text-[16px]">${costoEnvio} MXN</p>
+          </div>
+        )}
 
         <div className="flex justify-between items-center">
           <p className="font-bold text-[18px]">TOTAL</p>
