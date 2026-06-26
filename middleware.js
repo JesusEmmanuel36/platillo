@@ -11,19 +11,26 @@ export function middleware(req) {
     return NextResponse.next();
   }
 
-  // Solo aplicar en platillo.mx
+  // ─── Admin ────────────────────────────────────────────────────────────────
+  if (host === "admin.platillo.mx") {
+    // Login siempre público
+    if (pathname === "/login") return NextResponse.next();
+
+    // Verificar cookie de sesión
+    const token = req.cookies.get("admin_token")?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+
+    return NextResponse.next();
+  }
+
+  // ─── platillo.mx ─────────────────────────────────────────────────────────
   const isMainDomain = host === "platillo.mx";
+  if (!isMainDomain) return NextResponse.next();
 
-  if (!isMainDomain) {
-    return NextResponse.next();
-  }
+  if (REAL_ROUTES.includes(pathname)) return NextResponse.next();
 
-  // Permitir rutas reales
-  if (REAL_ROUTES.includes(pathname)) {
-    return NextResponse.next();
-  }
-
-  // Todo lo demás se redirige
   return NextResponse.redirect(new URL("https://platillo.mx", req.url));
 }
 
