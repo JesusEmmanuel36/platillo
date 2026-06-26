@@ -41,7 +41,10 @@ export default function AdminLogin() {
 
       router.push("/");
     } catch (e) {
-      if (e.code === "auth/invalid-credential" || e.code === "auth/wrong-password") {
+      if (
+        e.code === "auth/invalid-credential" ||
+        e.code === "auth/wrong-password"
+      ) {
         setError("Email o contraseña incorrectos.");
       } else {
         setError("Error al iniciar sesión.");
@@ -54,14 +57,23 @@ export default function AdminLogin() {
   return (
     <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4">
       <div className="w-full max-w-sm flex flex-col gap-6">
-        <div className="text-center">
-          <p className="text-2xl font-bold text-[var(--foreground)]">Platillo</p>
-          <p className="text-sm text-[var(--gray-color)] mt-1">Panel de administración</p>
+        <div className="text-center flex flex-col items-center">
+          <img
+            src="/logo.png"
+            alt="Platillo"
+            className="w-[140px] h-auto object-contain"
+          />
+
+          <p className="text-sm text-[var(--gray-color)] mt-2">
+            Panel de administración
+          </p>
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-[var(--foreground)]">Email</label>
+            <label className="text-sm font-medium text-[var(--foreground)]">
+              Email
+            </label>
             <input
               type="email"
               value={email}
@@ -73,7 +85,9 @@ export default function AdminLogin() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-[var(--foreground)]">Contraseña</label>
+            <label className="text-sm font-medium text-[var(--foreground)]">
+              Contraseña
+            </label>
             <input
               type="password"
               value={password}
