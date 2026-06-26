@@ -14,7 +14,7 @@ export async function generateMetadata() {
   }
 
   return {
-    title: "Platillo | Pedidos sin comisiones",
+    title: "Platillo - Pedidos sin comisiones",
     description: "Sistema de pedidos para restaurantes sin comisiones por pedido.",
   };
 }
