@@ -61,7 +61,7 @@ export default function AdminLogin() {
           <img
             src="/logo.png"
             alt="Platillo"
-            className="w-[140px] h-auto object-contain"
+            className="w-[110px] h-auto object-contain"
           />
 
           <p className="text-sm text-[var(--gray-color)] mt-2">
