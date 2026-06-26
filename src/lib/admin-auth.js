@@ -1,19 +1,25 @@
 import { adminAuth } from "@/lib/firebase-admin";
 
-const SUPER_ADMIN_UIDS = (process.env.SUPER_ADMIN_UIDS || process.env.SUPER_ADMIN_UID || "")
-  .split(",")
-  .map((u) => u.trim())
-  .filter(Boolean);
+function getAllowedSuperAdminUids() {
+  return (process.env.SUPER_ADMIN_UIDS || process.env.SUPER_ADMIN_UID || "")
+    .split(",")
+    .map((u) => u.trim())
+    .filter(Boolean);
+}
+
+export function isSuperAdminUid(uid) {
+  const allowedUids = getAllowedSuperAdminUids();
+  return allowedUids.includes(uid);
+}
 
 export async function verifySuperAdmin(sessionCookie) {
   if (!sessionCookie) return { ok: false, reason: "no_token" };
 
   try {
-    // Verificar session cookie (checkRevoked: true)
     const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
     const uid = decoded.uid;
 
-    if (!SUPER_ADMIN_UIDS.includes(uid)) {
+    if (!isSuperAdminUid(uid)) {
       return { ok: false, reason: "not_superadmin", uid };
     }
 
