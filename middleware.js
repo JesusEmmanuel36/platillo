@@ -2,24 +2,39 @@ import { NextResponse } from "next/server";
 
 const REAL_ROUTES = ["/", "/gordo"];
 
-export function middleware(req) {
-  const host = req.headers.get("host");
-  const { pathname } = req.nextUrl;
+function isLocalDevHost(host) {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    (host.startsWith("localhost:") || host.startsWith("127.0.0.1:"))
+  );
+}
 
-  // Permitir APIs siempre
+function isAdminHost(host) {
+  return host === "admin.platillo.mx" || isLocalDevHost(host);
+}
+
+export function middleware(req) {
+  const host = req.headers.get("host") || "";
+  const { pathname, search } = req.nextUrl;
+
+  // Permitir APIs siempre.
+  // Las APIs sensibles se protegen dentro de su route.js.
   if (pathname.startsWith("/api")) {
     return NextResponse.next();
   }
 
   // ─── Admin ────────────────────────────────────────────────────────────────
-  if (host === "admin.platillo.mx") {
+  if (isAdminHost(host)) {
     // Login siempre público
     if (pathname === "/login") return NextResponse.next();
 
     // Verificar cookie de sesión
     const token = req.cookies.get("admin_token")?.value;
+
     if (!token) {
-      return NextResponse.redirect(new URL("/login", req.url));
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("next", `${pathname}${search || ""}`);
+      return NextResponse.redirect(loginUrl);
     }
 
     return NextResponse.next();
@@ -27,6 +42,7 @@ export function middleware(req) {
 
   // ─── platillo.mx ─────────────────────────────────────────────────────────
   const isMainDomain = host === "platillo.mx";
+
   if (!isMainDomain) return NextResponse.next();
 
   if (REAL_ROUTES.includes(pathname)) return NextResponse.next();

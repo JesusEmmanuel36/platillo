@@ -2,11 +2,24 @@ import { headers, cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySuperAdmin } from "@/lib/admin-auth";
 
+function isLocalDevHost(host) {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    (host.startsWith("localhost:") || host.startsWith("127.0.0.1:"))
+  );
+}
+
+function isAdminHost(host) {
+  return host === "admin.platillo.mx" || isLocalDevHost(host);
+}
+
 export async function requireSuperAdmin() {
   const headersList = await headers();
   const host = headersList.get("host") || "";
 
-  if (host !== "admin.platillo.mx") return null;
+  // Solo aplica en admin.platillo.mx en producción
+  // y en localhost durante desarrollo.
+  if (!isAdminHost(host)) return null;
 
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("admin_token")?.value;
