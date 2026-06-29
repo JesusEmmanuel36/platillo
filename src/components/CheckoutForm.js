@@ -350,67 +350,74 @@ export default function CheckoutForm({ restaurant }) {
         <p className="font-bold text-[18px]">Método de entrega</p>
         <div className="w-full flex flex-col gap-3">
           {/* A domicilio */}
-          <div
-            className={`flex flex-col w-full gap-2 overflow-hidden transition-all duration-200 ${entrega === "domicilio" ? "max-h-[500px]" : "max-h-4"}`}
-          >
-            <label className="flex items-center w-full gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="entrega"
-                value="domicilio"
-                onChange={(e) => setEntrega(e.target.value)}
-                className="shrink-0"
-              />
-              <p>A domicilio</p>
-            </label>
-            <div className="flex flex-col w-full rounded-md bg-[var(--light-gray)] border border-[1.6px] border-[var(--half-gray)] text-black p-3 gap-2">
-              <div className="flex flex-col">
-                <p className="font-semibold">Calle</p>
+
+          {deliveryEnabled && (
+            <div
+              className={`flex flex-col w-full gap-2 overflow-hidden transition-all duration-200 ${entrega === "domicilio" ? "max-h-[500px]" : "max-h-4"}`}
+            >
+              <label className="flex items-center w-full gap-2 cursor-pointer">
                 <input
-                  className="outline-none w-full border-b border-b-[1.6px] border-[var(--gray-color)] placeholder-[var(--gray-color)] text-[var(--gray-color)]"
-                  type="text"
-                  placeholder="Ingresa tu calle"
-                  value={calle}
-                  onChange={(e) => setCalle(e.target.value)}
+                  type="radio"
+                  name="entrega"
+                  value="domicilio"
+                  onChange={(e) => setEntrega(e.target.value)}
+                  className="shrink-0"
                 />
+                <p>A domicilio</p>
+              </label>
+              <div className="flex flex-col w-full rounded-md bg-[var(--light-gray)] border border-[1.6px] border-[var(--half-gray)] text-black p-3 gap-2">
+                <div className="flex flex-col">
+                  <p className="font-semibold">Calle</p>
+                  <input
+                    className="outline-none w-full border-b border-b-[1.6px] border-[var(--gray-color)] placeholder-[var(--gray-color)] text-[var(--gray-color)]"
+                    type="text"
+                    placeholder="Ingresa tu calle"
+                    value={calle}
+                    onChange={(e) => setCalle(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <p className="font-semibold">Número de casa</p>
+                  <input
+                    className="outline-none w-full border-b border-b-[1.6px] border-[var(--gray-color)] placeholder-[var(--gray-color)] text-[var(--gray-color)]"
+                    type="number"
+                    placeholder="Ingresa tu número de casa"
+                    value={numero}
+                    onChange={(e) =>
+                      setNumero(e.target.value.replace(/\D/g, ""))
+                    }
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <p className="font-semibold">Colonia</p>
+                  <input
+                    className="outline-none w-full border-b border-b-[1.6px] border-[var(--gray-color)] placeholder-[var(--gray-color)] text-[var(--gray-color)]"
+                    type="text"
+                    placeholder="Ingresa tu colonia"
+                    value={colonia}
+                    onChange={(e) => setColonia(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <p className="font-semibold">Código Postal</p>
+                  <input
+                    className="outline-none w-full border-b border-b-[1.6px] border-[var(--gray-color)] placeholder-[var(--gray-color)] text-[var(--gray-color)]"
+                    type="tel"
+                    placeholder="Ingresa tu código postal"
+                    value={postal}
+                    onChange={(e) =>
+                      setPostal(e.target.value.replace(/\D/g, ""))
+                    }
+                  />
+                </div>
+                {intentoEnvio && !domicilioValido && (
+                  <p className="text-xs text-red-500">
+                    Completa todos los campos de dirección.
+                  </p>
+                )}
               </div>
-              <div className="flex flex-col">
-                <p className="font-semibold">Número de casa</p>
-                <input
-                  className="outline-none w-full border-b border-b-[1.6px] border-[var(--gray-color)] placeholder-[var(--gray-color)] text-[var(--gray-color)]"
-                  type="number"
-                  placeholder="Ingresa tu número de casa"
-                  value={numero}
-                  onChange={(e) => setNumero(e.target.value.replace(/\D/g, ""))}
-                />
-              </div>
-              <div className="flex flex-col">
-                <p className="font-semibold">Colonia</p>
-                <input
-                  className="outline-none w-full border-b border-b-[1.6px] border-[var(--gray-color)] placeholder-[var(--gray-color)] text-[var(--gray-color)]"
-                  type="text"
-                  placeholder="Ingresa tu colonia"
-                  value={colonia}
-                  onChange={(e) => setColonia(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-col">
-                <p className="font-semibold">Código Postal</p>
-                <input
-                  className="outline-none w-full border-b border-b-[1.6px] border-[var(--gray-color)] placeholder-[var(--gray-color)] text-[var(--gray-color)]"
-                  type="tel"
-                  placeholder="Ingresa tu código postal"
-                  value={postal}
-                  onChange={(e) => setPostal(e.target.value.replace(/\D/g, ""))}
-                />
-              </div>
-              {intentoEnvio && !domicilioValido && (
-                <p className="text-xs text-red-500">
-                  Completa todos los campos de dirección.
-                </p>
-              )}
             </div>
-          </div>
+          )}
 
           {/* Recoger en local */}
           <div
@@ -442,7 +449,7 @@ export default function CheckoutForm({ restaurant }) {
       </div>
 
       {/* Método de pago */}
-      {(cashEnabled || transferEnabled) && (
+      {(cashEnabled || transferEnabled || cardEnabled) && (
         <div
           className={`flex flex-col w-full gap-2 p-6 shadow-[0_0_10px_rgba(0,0,0,0.2)] rounded-md items-start`}
         >

@@ -359,11 +359,18 @@ export async function POST(req) {
     }
 
     let costoEnvio = 0;
-    if (entrega.tipo === "domicilio") {
-      if (restaurante.delivery_enabled && restaurante.delivery_price) {
-        costoEnvio = Number(restaurante.delivery_price);
-      }
+
+    if (entrega.tipo === "domicilio" && !restaurante.delivery_enabled) {
+      return NextResponse.json(
+        { ok: false, error: "Este restaurante no tiene entrega a domicilio." },
+        { status: 400 },
+      );
     }
+
+    if (entrega.tipo === "domicilio") {
+      costoEnvio = Number(restaurante.delivery_price || 0);
+    }
+
     totalBackend += costoEnvio;
 
     console.log("🧾 Total backend calculado:", totalBackend);
