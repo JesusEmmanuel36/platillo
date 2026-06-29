@@ -64,8 +64,8 @@ export default function ProductOptionsModal({ product, onClose, onAdded }) {
   }, [selectedOptions, product]);
 
   return (
-    <div className="absolute fixed inset-0 bg-black/50 z-60 flex items-center justify-center">
-      <div className="bg-white w-[90%] md:w-[500px] flex flex-col gap-0 rounded-[10px] max-w-[350px]">
+<div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4">
+  <div className="flex max-h-[92dvh] w-full max-w-[420px] flex-col overflow-hidden rounded-[22px] bg-white">
         {/* Header */}
         <div className="flex justify-between items-center border-b p-4">
           <h3 className="font-bold text-lg">
