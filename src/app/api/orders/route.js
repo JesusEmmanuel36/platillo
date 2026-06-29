@@ -13,8 +13,8 @@ function esStringValido(val) {
 }
 
 function estaAbierto(restaurante) {
-  if (restaurante.alwaysOpen) return true;
   if (!restaurante.isOpen) return false;
+  if (restaurante.alwaysOpen) return true;
 
   const dias = [
     "Domingo",

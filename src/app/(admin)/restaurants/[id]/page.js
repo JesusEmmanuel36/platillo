@@ -37,6 +37,32 @@ function formatDate(date, withTime = false) {
   }).format(date);
 }
 
+function StatusBadge({ children, tone = "neutral" }) {
+  const tones = {
+    green: "bg-[var(--green-color)] text-[var(--green-text-color)]",
+    red: "bg-[var(--red-color)] text-[var(--red-text-color)]",
+    accent: "bg-[var(--light-accent)] text-[var(--accent-color)]",
+    neutral: "bg-[var(--light-gray)] text-[var(--gray-color)]",
+  };
+
+  return (
+    <div
+      className={`flex flex-row items-center justify-center rounded-[10px] px-3 py-1 text-[14px]  font-semibold ${tones[tone]}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function getPlatformLabel(status) {
+  const labels = {
+    active: "Activo",
+    suspended: "Suspendido",
+  };
+
+  return labels[status] || status || "—";
+}
+
 function getBillingLabel(status) {
   const labels = {
     trial: "Prueba",
@@ -55,15 +81,14 @@ function Pill({ children, tone = "neutral" }) {
       "border-[var(--half-gray)] bg-[var(--light-gray)] text-[var(--foreground)]",
     green:
       "border-[var(--green-text-color)] bg-[var(--green-color)] text-[var(--green-text-color)]",
-    red:
-      "border-[var(--red-text-color)] bg-[var(--red-color)] text-[var(--red-text-color)]",
+    red: "border-[var(--red-text-color)] bg-[var(--red-color)] text-[var(--red-text-color)]",
     accent:
       "border-[var(--accent-color)] bg-[var(--light-accent)] text-[var(--accent-color)]",
   };
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black ${tones[tone] || tones.neutral}`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${tones[tone] || tones.neutral}`}
     >
       {children}
     </span>
@@ -182,19 +207,12 @@ export default async function RestaurantDetailPage({ params }) {
 
       <header className="sticky top-0 z-20 border-b border-[var(--half-gray)] bg-[var(--background)]/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--accent-color)] text-lg font-black text-white shadow-[0_12px_30px_rgba(237,64,11,0.25)]">
-              P
-            </div>
-
-            <div>
-              <p className="text-base font-black leading-tight tracking-tight">
-                Platillo Admin
-              </p>
-              <p className="text-xs font-medium text-[var(--gray-color)]">
-                Detalle de restaurante
-              </p>
-            </div>
+          <Link href="/" className="flex items-center">
+            <img
+              src="/logo.png"
+              alt="Platillo"
+              className="h-7 w-auto object-contain"
+            />
           </Link>
 
           <div className="flex items-center gap-2">
@@ -218,25 +236,13 @@ export default async function RestaurantDetailPage({ params }) {
           ← Volver a restaurantes
         </Link>
 
-        <section className="relative overflow-hidden rounded-[2rem] border border-[var(--half-gray)] bg-[var(--foreground)] text-white shadow-[0_24px_80px_rgba(0,0,0,0.14)]">
-          {restaurant.banner ? (
-            <div className="absolute inset-0">
-              <img
-                src={restaurant.banner}
-                alt={restaurant.name}
-                className="h-full w-full object-cover opacity-25"
-              />
-              <div className="absolute inset-0 bg-[var(--foreground)]/75" />
-            </div>
-          ) : (
-            <>
-              <div className="absolute right-[-80px] top-[-120px] h-80 w-80 rounded-full bg-[var(--accent-color)] opacity-40 blur-3xl" />
-              <div className="absolute bottom-[-140px] left-[25%] h-72 w-72 rounded-full bg-[var(--light-accent)] opacity-20 blur-3xl" />
-            </>
-          )}
+        <section className="relative overflow-hidden rounded-[2rem] bg-[var(--foreground)] text-white shadow-[0_24px_80px_rgba(0,0,0,0.14)]">
+          <div className="relative overflow-hidden p-6 sm:p-8">
+            {/* Sombra naranja / glow de fondo */}
+            <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[var(--accent-color)] opacity-30 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[var(--light-accent)] opacity-20 blur-3xl" />
 
-          <div className="relative p-6 sm:p-8">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div className="flex items-start gap-4">
                 {restaurant.pfp ? (
                   <img
@@ -253,8 +259,9 @@ export default async function RestaurantDetailPage({ params }) {
                 <div>
                   <div className="mb-3 flex flex-wrap gap-2">
                     <Pill tone={getPlatformTone(restaurant.platformStatus)}>
-                      {restaurant.platformStatus}
+                      {getPlatformLabel(restaurant.platformStatus)}
                     </Pill>
+
                     <Pill tone={getBillingTone(restaurant.billing.status)}>
                       {getBillingLabel(restaurant.billing.status)}
                     </Pill>

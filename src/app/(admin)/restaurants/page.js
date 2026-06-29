@@ -42,21 +42,54 @@ function getBillingLabel(status) {
   return labels[status] || status || "—";
 }
 
+function getPlatformLabel(status) {
+  const labels = {
+    active: "Activo",
+    suspended: "Suspendido",
+  };
+
+  return labels[status] || status || "—";
+}
+
+function getWhatsappLabel(status) {
+  const labels = {
+    connected: "Conectado",
+    disconnected: "Desconectado",
+    connecting: "Conectando",
+    qr: "Esperando QR",
+    ready: "Listo",
+    error: "Error",
+    expired: "Expirado",
+    pending: "Pendiente",
+  };
+
+  return labels[status] || status || "—";
+}
+
+function getWhatsappTone(status) {
+  if (status === "connected" || status === "ready") return "green";
+  if (status === "error" || status === "expired") return "red";
+  if (status === "connecting" || status === "qr" || status === "pending") {
+    return "accent";
+  }
+
+  return "neutral";
+}
+
 function Pill({ children, tone = "neutral" }) {
   const tones = {
     neutral:
       "border-[var(--half-gray)] bg-[var(--light-gray)] text-[var(--foreground)]",
     green:
       "border-[var(--green-text-color)] bg-[var(--green-color)] text-[var(--green-text-color)]",
-    red:
-      "border-[var(--red-text-color)] bg-[var(--red-color)] text-[var(--red-text-color)]",
+    red: "border-[var(--red-text-color)] bg-[var(--red-color)] text-[var(--red-text-color)]",
     accent:
       "border-[var(--accent-color)] bg-[var(--light-accent)] text-[var(--accent-color)]",
   };
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-black ${tones[tone] || tones.neutral}`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${tones[tone] || tones.neutral}`}
     >
       {children}
     </span>
@@ -151,19 +184,12 @@ export default async function RestaurantsPage() {
 
       <header className="sticky top-0 z-20 border-b border-[var(--half-gray)] bg-[var(--background)]/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--accent-color)] text-lg font-black text-white shadow-[0_12px_30px_rgba(237,64,11,0.25)]">
-              P
-            </div>
-
-            <div>
-              <p className="text-base font-black leading-tight tracking-tight">
-                Platillo Admin
-              </p>
-              <p className="text-xs font-medium text-[var(--gray-color)]">
-                Restaurantes
-              </p>
-            </div>
+          <Link href="/" className="flex items-center">
+            <img
+              src="/logo.png"
+              alt="Platillo"
+              className="h-7 w-auto object-contain"
+            />
           </Link>
 
           <div className="flex items-center gap-2">
@@ -276,7 +302,9 @@ export default async function RestaurantsPage() {
                       <th className="px-5 py-4 font-black">Pago</th>
                       <th className="px-5 py-4 font-black">Ventas mes</th>
                       <th className="px-5 py-4 font-black">WhatsApp</th>
-                      <th className="px-5 py-4 font-black text-right">Acción</th>
+                      <th className="px-5 py-4 font-black text-right">
+                        Acción
+                      </th>
                     </tr>
                   </thead>
 
@@ -314,8 +342,10 @@ export default async function RestaurantsPage() {
 
                         <td className="px-5 py-5 align-top">
                           <div className="flex flex-col gap-2">
-                            <Pill tone={getPlatformTone(restaurant.platformStatus)}>
-                              {restaurant.platformStatus}
+                            <Pill
+                              tone={getPlatformTone(restaurant.platformStatus)}
+                            >
+                              {getPlatformLabel(restaurant.platformStatus)}
                             </Pill>
                             <span className="text-sm text-[var(--gray-color)]">
                               {restaurant.phone || "Sin teléfono"}
@@ -325,14 +355,17 @@ export default async function RestaurantsPage() {
 
                         <td className="px-5 py-5 align-top">
                           <div className="flex flex-col gap-2">
-                            <Pill tone={getBillingTone(restaurant.billing.status)}>
+                            <Pill
+                              tone={getBillingTone(restaurant.billing.status)}
+                            >
                               {getBillingLabel(restaurant.billing.status)}
                             </Pill>
                             <span className="text-sm text-[var(--gray-color)]">
                               {formatCurrency(restaurant.billing.monthlyPrice)}
                             </span>
                             <span className="text-xs text-[var(--gray-color)]">
-                              Trial: {formatDate(restaurant.billing.trialEndsAt)}
+                              Trial:{" "}
+                              {formatDate(restaurant.billing.trialEndsAt)}
                             </span>
                             <span className="text-xs text-[var(--gray-color)]">
                               Pagado: {formatDate(restaurant.billing.paidUntil)}
@@ -344,7 +377,7 @@ export default async function RestaurantsPage() {
                           <div className="flex flex-col gap-1">
                             <p className="font-black text-[var(--accent-color)]">
                               {formatCurrency(
-                                restaurant.metrics.ventasTotalesEsteMes
+                                restaurant.metrics.ventasTotalesEsteMes,
                               )}
                             </p>
                             <p className="text-xs text-[var(--gray-color)]">
@@ -353,13 +386,13 @@ export default async function RestaurantsPage() {
                             <p className="text-xs text-[var(--gray-color)]">
                               Online:{" "}
                               {formatCurrency(
-                                restaurant.metrics.ventasOnlineEsteMes
+                                restaurant.metrics.ventasOnlineEsteMes,
                               )}
                             </p>
                             <p className="text-xs text-[var(--gray-color)]">
                               Manual:{" "}
                               {formatCurrency(
-                                restaurant.metrics.ventasManualesEsteMes
+                                restaurant.metrics.ventasManualesEsteMes,
                               )}
                             </p>
                           </div>
@@ -368,13 +401,11 @@ export default async function RestaurantsPage() {
                         <td className="px-5 py-5 align-top">
                           <div className="flex flex-col gap-2">
                             <Pill
-                              tone={
-                                restaurant.whatsappBot.status === "connected"
-                                  ? "green"
-                                  : "neutral"
-                              }
+                              tone={getWhatsappTone(
+                                restaurant.whatsappBot.status,
+                              )}
                             >
-                              {restaurant.whatsappBot.status}
+                              {getWhatsappLabel(restaurant.whatsappBot.status)}
                             </Pill>
                             <span className="text-xs text-[var(--gray-color)]">
                               {restaurant.whatsappStats.sentThisMonth} enviados
@@ -425,7 +456,9 @@ export default async function RestaurantsPage() {
                             </p>
                           </div>
 
-                          <Pill tone={getBillingTone(restaurant.billing.status)}>
+                          <Pill
+                            tone={getBillingTone(restaurant.billing.status)}
+                          >
                             {getBillingLabel(restaurant.billing.status)}
                           </Pill>
                         </div>
@@ -441,7 +474,7 @@ export default async function RestaurantsPage() {
                             </p>
                             <p className="font-black text-[var(--accent-color)]">
                               {formatCurrency(
-                                restaurant.metrics.ventasTotalesEsteMes
+                                restaurant.metrics.ventasTotalesEsteMes,
                               )}
                             </p>
                           </div>

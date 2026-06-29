@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { getProducts } from "@/lib/firestore";
 import ProductOptionsModal from "./ProductModal";
 import Navbar from "./Navbar";
+import { useSuccess } from "@/components/SuccessProvider";
 
 const Map = dynamic(() => import("./Map"), {
   ssr: false,
@@ -57,6 +58,7 @@ export default function RestaurantPage({ restaurant, products }) {
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const restauranteDisponible = estaDentroDelHorario(restaurant);
+  const { showSuccess } = useSuccess();
 
   const categories = [...new Set(products.map((p) => p.category))];
 
@@ -221,11 +223,6 @@ export default function RestaurantPage({ restaurant, products }) {
               <p className="mt-2">
                 Este restaurante se encuentra cerrado en este momento.
               </p>
-
-              <p className="text-[14px] mt-1 opacity-80">
-                Puedes consultar el menú, pero no es posible realizar pedidos
-                por ahora.
-              </p>
             </div>
           </div>
         )}
@@ -269,11 +266,11 @@ export default function RestaurantPage({ restaurant, products }) {
               </div>
 
               {/* Grid de productos */}
-<div
-  className={`flex flex-col gap-3 transition-all duration-300 ${
-    isOpen ? "max-h-[2000px]" : "overflow-hidden max-h-0"
-  }`}
->
+              <div
+                className={`flex flex-col gap-3 transition-all duration-300 ${
+                  isOpen ? "max-h-[2000px]" : "overflow-hidden max-h-0"
+                }`}
+              >
                 {productsByCategory.map((product, i) => (
                   <ProductCard
                     key={i}
@@ -404,7 +401,15 @@ export default function RestaurantPage({ restaurant, products }) {
       {selectedProduct && (
         <ProductOptionsModal
           product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
+          onClose={() => {
+            setSelectedProduct(null);
+
+            showSuccess({
+              title: "Producto agregado",
+              message: "El producto se agregó al carrito.",
+              duration: 1000,
+            });
+          }}
         />
       )}
     </div>

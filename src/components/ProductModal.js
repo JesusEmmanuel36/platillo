@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useCartStore } from "@/stores/useCartStore";
 
+import { useError } from "@/components/ErrorProvider";
+
 export default function ProductOptionsModal({ product, onClose }) {
   const [finalPrice, setFinalPrice] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState({});
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState("");
   const max = Number(product.max || 99);
+  const { showError } = useError();
 
   const cart = useCartStore((state) => state.cart);
   const addToCart = useCartStore((state) => state.addToCart);
@@ -351,7 +354,12 @@ export default function ProductOptionsModal({ product, onClose }) {
               // 1. Validar TODO
               for (const opt of product.options || []) {
                 if (opt.required && !selectedOptions[opt.title]) {
-                  console.log(`ERROR: DEBES LLENAR EL CAMPO ${opt.title}`);
+                  console.log(opt.title);
+                  showError({
+                    title: "Opción obligatoria",
+                    message: `Selecciona una opción en "${opt.title}" antes de continuar.`,
+                    duration: 2000,
+                  });
                   return;
                 }
               }
@@ -388,6 +396,8 @@ export default function ProductOptionsModal({ product, onClose }) {
               addToCart(pedido);
 
               onClose();
+
+
             }}
           >
             Añadir al carrito

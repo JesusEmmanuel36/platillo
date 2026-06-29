@@ -109,19 +109,12 @@ export default async function AdminDashboard() {
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-[var(--half-gray)] bg-[var(--background)]/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--accent-color)] text-lg font-black text-white shadow-[0_12px_30px_rgba(237,64,11,0.25)]">
-              P
-            </div>
-
-            <div>
-              <p className="text-base font-black leading-tight tracking-tight">
-                Platillo Admin
-              </p>
-              <p className="text-xs font-medium text-[var(--gray-color)]">
-                Panel interno de control
-              </p>
-            </div>
+          <Link href="/" className="flex items-center">
+            <img
+              src="/logo.png"
+              alt="Platillo"
+              className="h-7 w-auto object-contain"
+            />
           </Link>
 
           <div className="flex items-center gap-2">

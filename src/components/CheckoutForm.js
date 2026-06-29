@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useCartStore } from "@/stores/useCartStore";
 import { useRouter } from "next/navigation";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { useError } from "@/components/ErrorProvider";
+import { useSuccess } from "@/components/SuccessProvider";
 
 export default function CheckoutForm({ restaurant }) {
   const [entrega, setEntrega] = useState("");
@@ -18,6 +20,8 @@ export default function CheckoutForm({ restaurant }) {
   const [intentoEnvio, setIntentoEnvio] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { showError } = useError();
+  const { showSuccess } = useSuccess();
 
   const stripe = useStripe();
   const elements = useElements();
@@ -121,6 +125,30 @@ export default function CheckoutForm({ restaurant }) {
     cambioValido &&
     cardValid;
 
+  function guardarPedidoYRedirigir(orderId) {
+    const pedidosGuardados = JSON.parse(
+      localStorage.getItem("platillo_orders") || "[]",
+    );
+
+    pedidosGuardados.push({
+      orderId,
+      restaurantSlug: restaurant.slug,
+      creadoEn: new Date().toISOString(),
+    });
+
+    localStorage.setItem("platillo_orders", JSON.stringify(pedidosGuardados));
+
+    showSuccess({
+      title: "Pedido enviado",
+      message: "Tu pedido fue registrado correctamente.",
+      duration: 1200,
+    });
+
+    setTimeout(() => {
+      window.location.href = `/${restaurant.slug}/pedidos`;
+    }, 900);
+  }
+
   const handleConfirmar = async () => {
     if (loading) return;
 
@@ -221,35 +249,11 @@ export default function CheckoutForm({ restaurant }) {
 
         console.log("✅ Pago exitoso, orden:");
 
-        const pedidosGuardados = JSON.parse(
-          localStorage.getItem("platillo_orders") || "[]",
-        );
-        pedidosGuardados.push({
-          orderId: data.orderId,
-          restaurantSlug: restaurant.slug,
-          creadoEn: new Date().toISOString(),
-        });
-        localStorage.setItem(
-          "platillo_orders",
-          JSON.stringify(pedidosGuardados),
-        );
-        window.location.href = `/${restaurant.slug}/pedidos`;
+        guardarPedidoYRedirigir(data.orderId);
       } else {
         console.log("✅ Orden creada:");
 
-        const pedidosGuardados = JSON.parse(
-          localStorage.getItem("platillo_orders") || "[]",
-        );
-        pedidosGuardados.push({
-          orderId: data.orderId,
-          restaurantSlug: restaurant.slug,
-          creadoEn: new Date().toISOString(),
-        });
-        localStorage.setItem(
-          "platillo_orders",
-          JSON.stringify(pedidosGuardados),
-        );
-        window.location.href = `/${restaurant.slug}/pedidos`;
+        guardarPedidoYRedirigir(data.orderId);
       }
     } finally {
       setLoading(false);
