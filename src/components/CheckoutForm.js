@@ -29,8 +29,6 @@ export default function CheckoutForm({ restaurant }) {
   const [cardError, setCardError] = useState("");
 
   const cart = useCartStore((state) => state.cart);
-  console.log(cart);
-
   const deliveryEnabled = restaurant.delivery_enabled === true;
   const deliveryPrice = restaurant.delivery_price || 0;
   const costoEnvio =
@@ -200,10 +198,14 @@ export default function CheckoutForm({ restaurant }) {
       });
 
       const data = await res.json();
-      console.log(data);
 
       if (!data.ok) {
-        setCardError(data.error || "Error al crear pedido");
+        showError({
+          title: "No se pudo crear el pedido",
+          message: data.error || "Error al crear pedido",
+          duration: 1500,
+        });
+
         setLoading(false);
         return;
       }
