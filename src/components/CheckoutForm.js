@@ -22,6 +22,7 @@ export default function CheckoutForm({ restaurant }) {
   const router = useRouter();
   const { showError } = useError();
   const { showSuccess } = useSuccess();
+  const [pedidoFinalizado, setPedidoFinalizado] = useState(false);
 
   const stripe = useStripe();
   const elements = useElements();
@@ -29,6 +30,8 @@ export default function CheckoutForm({ restaurant }) {
   const [cardError, setCardError] = useState("");
 
   const cart = useCartStore((state) => state.cart);
+  const clearCart = useCartStore((state) => state.clearCart);
+
   const deliveryEnabled = restaurant.delivery_enabled === true;
   const deliveryPrice = restaurant.delivery_price || 0;
   const costoEnvio =
@@ -38,8 +41,8 @@ export default function CheckoutForm({ restaurant }) {
     costoEnvio;
 
   useEffect(() => {
-    if (cart.length === 0) router.back();
-  }, [cart, router]);
+    if (cart.length === 0 && !pedidoFinalizado) router.back();
+  }, [cart, router, pedidoFinalizado]);
 
   useEffect(() => {
     if (restaurant?.pfp) {
@@ -99,7 +102,7 @@ export default function CheckoutForm({ restaurant }) {
 
   // Validaciones individuales
   const nombreValido = nombre.trim() !== "";
-  const telefonoValido = telefono.trim() !== "";
+  const telefonoValido = /^\d{10}$/.test(telefono);
   const entregaValida = entrega !== "";
   const domicilioValido =
     entrega !== "domicilio" ||
@@ -142,6 +145,9 @@ export default function CheckoutForm({ restaurant }) {
       duration: 1200,
     });
 
+    setPedidoFinalizado(true);
+    clearCart();
+
     setTimeout(() => {
       window.location.href = `/${restaurant.slug}/pedidos`;
     }, 900);
@@ -151,7 +157,16 @@ export default function CheckoutForm({ restaurant }) {
     if (loading) return;
 
     setIntentoEnvio(true);
-    if (!formularioValido) return;
+
+    if (!formularioValido) {
+      showError({
+        title: "Completa tu pedido",
+        message: "Revisa los campos marcados antes de continuar.",
+        duration: 1500,
+      });
+
+      return;
+    }
 
     setLoading(true);
 
@@ -322,7 +337,9 @@ export default function CheckoutForm({ restaurant }) {
           onChange={(e) => setTelefono(e.target.value.replace(/\D/g, ""))}
         />
         {intentoEnvio && !telefonoValido && (
-          <p className="text-xs text-red-500">Este campo es obligatorio.</p>
+          <p className="text-xs text-red-500">
+            Ingresa un teléfono válido de 10 dígitos.
+          </p>
         )}
       </div>
 
@@ -628,7 +645,7 @@ export default function CheckoutForm({ restaurant }) {
 
         <button
           onClick={handleConfirmar}
-          disabled={!formularioValido || loading}
+          disabled={loading}
           className="cursor-pointer w-full p-4 bg-[var(--accent-color)] text-white font-bold text-[16px] rounded-md disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? (

@@ -244,6 +244,13 @@ export async function POST(req) {
     }
     const restaurante = restauranteSnap.data();
 
+    if (restaurante.platformStatus === "suspended") {
+      return NextResponse.json(
+        { ok: false, error: "Este restaurante no está disponible." },
+        { status: 403 },
+      );
+    }
+
     if (!estaAbierto(restaurante)) {
       return NextResponse.json(
         { ok: false, error: "El restaurante está cerrado en este momento." },
@@ -443,6 +450,8 @@ export async function POST(req) {
         status: "pendiente_pago",
         creadoEn: new Date(),
       });
+
+      orderId = pedidoRef.id;
 
       // 🔔 Push
       await enviarNotificacionPush(restaurante.expoPushToken, pedidoCompleto);
