@@ -29,7 +29,7 @@ export async function generateMetadata() {
 
   return {
     title: {
-      absolute: "Platillo | Pedidos sin comisiones",
+      absolute: "Platillo - Pedidos sin comisiones",
     },
     description: "Sistema de pedidos para restaurantes sin comisiones por pedido.",
   };
