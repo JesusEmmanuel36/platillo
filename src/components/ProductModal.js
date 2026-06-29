@@ -3,7 +3,7 @@ import { useCartStore } from "@/stores/useCartStore";
 
 import { useError } from "@/components/ErrorProvider";
 
-export default function ProductOptionsModal({ product, onClose }) {
+export default function ProductOptionsModal({ product, onClose, onAdded }) {
   const [finalPrice, setFinalPrice] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState({});
   const [quantity, setQuantity] = useState(1);
@@ -395,9 +395,9 @@ export default function ProductOptionsModal({ product, onClose }) {
               // 4. Agregar al carrito
               addToCart(pedido);
 
+              onAdded?.();
+
               onClose();
-
-
             }}
           >
             Añadir al carrito

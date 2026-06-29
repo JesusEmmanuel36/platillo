@@ -403,10 +403,11 @@ export default function RestaurantPage({ restaurant, products }) {
           product={selectedProduct}
           onClose={() => {
             setSelectedProduct(null);
-
+          }}
+          onAdded={() => {
             showSuccess({
               title: "Producto agregado",
-              message: "El producto se agregó al carrito.",
+              message: "Puedes revisar tu pedido en el carrito.",
               duration: 1000,
             });
           }}
