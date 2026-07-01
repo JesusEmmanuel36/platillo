@@ -37,6 +37,7 @@ function getBillingLabel(status) {
     overdue: "Vencido",
     cancelled: "Cancelado",
     free: "Gratis",
+    unassigned: "Sin asignar",
   };
 
   return labels[status] || status || "—";
