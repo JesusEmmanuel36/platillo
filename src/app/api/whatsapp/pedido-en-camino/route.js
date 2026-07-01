@@ -1,6 +1,32 @@
 import { adminAuth, db } from "@/lib/firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
+
+async function registrarWhatsappEnviado(restaurantRef) {
+  await restaurantRef.update({
+    "whatsappStats.sentThisMonth": FieldValue.increment(1),
+    "whatsappStats.failedThisMonth": FieldValue.increment(0),
+    "whatsappStats.lastSentAt": FieldValue.serverTimestamp(),
+  });
+}
+
+async function registrarWhatsappFallido(restaurantRef, restaurant) {
+  const updates = {
+    "whatsappStats.failedThisMonth": FieldValue.increment(1),
+    "whatsappStats.sentThisMonth": FieldValue.increment(0),
+  };
+
+  if (restaurant?.whatsappStats?.lastSentAt === undefined) {
+    updates["whatsappStats.lastSentAt"] = null;
+  }
+
+  await restaurantRef.update(updates);
+}
 
 export async function POST(req) {
+  let restaurantRefParaStats = null;
+  let restaurantParaStats = null;
+  let intentoEnviarWhatsapp = false;
+
   try {
     const authHeader = req.headers.get("authorization");
 
@@ -32,10 +58,16 @@ export async function POST(req) {
     const restaurantSnap = await restaurantRef.get();
 
     if (!restaurantSnap.exists) {
-      return Response.json({ error: "Restaurante no encontrado" }, { status: 404 });
+      return Response.json(
+        { error: "Restaurante no encontrado" },
+        { status: 404 },
+      );
     }
 
     const restaurant = restaurantSnap.data();
+
+    restaurantRefParaStats = restaurantRef;
+    restaurantParaStats = restaurant;
 
     if (restaurant.uid !== uid) {
       return Response.json({ error: "No tienes permiso" }, { status: 403 });
@@ -47,6 +79,8 @@ export async function POST(req) {
     const resumenPedido = order.items
       .map((item) => `(x${item.quantity}) ${item.name}`)
       .join(", ");
+
+    intentoEnviarWhatsapp = true;
 
     const response = await fetch(
       `https://graph.facebook.com/v25.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
@@ -91,20 +125,27 @@ export async function POST(req) {
             ],
           },
         }),
-      }
+      },
     );
 
     const data = await response.json();
 
     if (!response.ok) {
+      await registrarWhatsappFallido(restaurantRef, restaurant);
       return Response.json(data, { status: response.status });
     }
 
+    await registrarWhatsappEnviado(restaurantRef);
+
     return Response.json({ ok: true, data });
   } catch (error) {
-    return Response.json(
-      { error: error.message },
-      { status: 500 }
-    );
+    if (intentoEnviarWhatsapp && restaurantRefParaStats) {
+      await registrarWhatsappFallido(
+        restaurantRefParaStats,
+        restaurantParaStats,
+      );
+    }
+
+    return Response.json({ error: error.message }, { status: 500 });
   }
 }
