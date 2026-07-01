@@ -65,6 +65,7 @@ function getPlatformLabel(status) {
 
 function getBillingLabel(status) {
   const labels = {
+    unassigned: "Sin asignar",
     trial: "Prueba",
     paid: "Pagando",
     overdue: "Vencido",
@@ -72,7 +73,7 @@ function getBillingLabel(status) {
     free: "Gratis",
   };
 
-  return labels[status] || status || "—";
+  return labels[status] || "-";
 }
 
 function Pill({ children, tone = "neutral" }) {
@@ -146,6 +147,7 @@ function getPlatformTone(status) {
 }
 
 function getBillingTone(status) {
+  if (!status || status === "unassigned") return "neutral";
   if (status === "paid" || status === "free") return "green";
   if (status === "overdue" || status === "cancelled") return "red";
   if (status === "trial") return "accent";

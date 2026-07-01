@@ -58,7 +58,7 @@ function normalizeRestaurant(id, data = {}) {
     platformStatus: data.platformStatus || "active",
 
     billing: {
-      status: billing.status || "trial",
+      status: billing.status || "unassigned",
       monthlyPrice: toNumber(billing.monthlyPrice ?? 350),
       trialStartedAt: toDate(billing.trialStartedAt),
       trialEndsAt: toDate(billing.trialEndsAt),
