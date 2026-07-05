@@ -1,13 +1,28 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
+import { Timestamp } from "firebase-admin/firestore";
 import { db } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const gemini = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
+const AUTO_REPLY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+let geminiClient = null;
+
+/**
+ * Gemini se inicializa solamente cuando el restaurante
+ * tiene whatsapp.mode = "ai".
+ */
+function getGeminiClient() {
+  if (!geminiClient) {
+    geminiClient = new GoogleGenAI({
+      apiKey: getRequiredEnv("GEMINI_API_KEY"),
+    });
+  }
+
+  return geminiClient;
+}
 
 function getRequiredEnv(name) {
   const value = process.env[name];
@@ -20,7 +35,34 @@ function getRequiredEnv(name) {
 }
 
 /**
- * Normaliza el texto para detectar frases aunque tengan acentos.
+ * Normaliza un número telefónico para usarlo como ID
+ * del documento en Firestore.
+ */
+function normalizePhoneNumber(phoneNumber) {
+  return String(phoneNumber || "").replace(/\D/g, "");
+}
+
+/**
+ * Convierte un Timestamp de Firestore a milisegundos.
+ */
+function timestampToMilliseconds(timestamp) {
+  if (!timestamp) {
+    return 0;
+  }
+
+  if (typeof timestamp.toMillis === "function") {
+    return timestamp.toMillis();
+  }
+
+  if (typeof timestamp.toDate === "function") {
+    return timestamp.toDate().getTime();
+  }
+
+  return 0;
+}
+
+/**
+ * Normaliza texto para detectar frases aunque tengan acentos.
  */
 function normalizeText(text) {
   return text
@@ -31,7 +73,8 @@ function normalizeText(text) {
 }
 
 /**
- * Detecta cuando el cliente quiere realizar un pedido.
+ * Detecta cuando un cliente quiere hacer un pedido.
+ * Se utiliza solamente en el modo con IA.
  */
 function wantsToPlaceOrder(message) {
   const normalizedMessage = normalizeText(message);
@@ -77,14 +120,16 @@ async function getRestaurantByPhoneNumberId(phoneNumberId) {
   const restaurantData = restaurantDocument.data();
 
   if (restaurantData?.whatsapp?.enabled !== true) {
-    console.log("El chatbot está desactivado para este restaurante");
+    console.log(
+      "WhatsApp está desactivado para este restaurante",
+    );
 
     return null;
   }
 
   if (!restaurantData?.name || !restaurantData?.slug) {
     console.error(
-      "El restaurante no tiene name o slug configurado:",
+      "El restaurante no tiene name o slug:",
       restaurantDocument.id,
     );
 
@@ -98,16 +143,198 @@ async function getRestaurantByPhoneNumberId(phoneNumberId) {
 }
 
 /**
+ * Determina si debe enviarse la autorrespuesta.
+ *
+ * La transacción evita que dos mensajes recibidos casi
+ * simultáneamente generen dos enlaces.
+ */
+async function claimAutomaticMenuReply({
+  customerPhone,
+  customerName,
+  incomingMessageId,
+  restaurant,
+}) {
+  const normalizedPhone =
+    normalizePhoneNumber(customerPhone);
+
+  if (!normalizedPhone) {
+    throw new Error(
+      "No se pudo normalizar el teléfono del cliente",
+    );
+  }
+
+  const autoReplyRef = db
+    .collection("whatsappAutoReplies")
+    .doc(normalizedPhone);
+
+  return db.runTransaction(async (transaction) => {
+    const snapshot =
+      await transaction.get(autoReplyRef);
+
+    const existingData = snapshot.data() || {};
+    const now = Timestamp.now();
+    const nowMilliseconds = now.toMillis();
+
+    const sameRestaurant =
+      existingData.lastRestaurantId === restaurant.id;
+
+    const lastSentMilliseconds =
+      timestampToMilliseconds(
+        existingData.lastMenuLinkSentAt,
+      );
+
+    const cooldownIsActive =
+      sameRestaurant &&
+      lastSentMilliseconds > 0 &&
+      nowMilliseconds - lastSentMilliseconds <
+        AUTO_REPLY_COOLDOWN_MS;
+
+    const commonData = {
+      customerPhone: normalizedPhone,
+      customerName: customerName || null,
+
+      lastRestaurantId: restaurant.id,
+      lastRestaurantName: restaurant.name,
+      lastRestaurantSlug: restaurant.slug,
+
+      lastIncomingMessageId:
+        incomingMessageId || null,
+      lastIncomingMessageAt: now,
+
+      updatedAt: now,
+    };
+
+    if (!snapshot.exists) {
+      commonData.createdAt = now;
+    }
+
+    /*
+     * Aunque siga en cooldown, actualizamos la información
+     * del último mensaje recibido.
+     */
+    if (cooldownIsActive) {
+      transaction.set(
+        autoReplyRef,
+        commonData,
+        {
+          merge: true,
+        },
+      );
+
+      return {
+        shouldSend: false,
+        autoReplyRef,
+      };
+    }
+
+    /*
+     * Reservamos el envío dentro de la transacción.
+     * Así otro mensaje simultáneo verá el cooldown activo.
+     */
+    transaction.set(
+      autoReplyRef,
+      {
+        ...commonData,
+        lastMenuLinkSentAt: now,
+        lastAutoReplyStatus: "pending",
+      },
+      {
+        merge: true,
+      },
+    );
+
+    return {
+      shouldSend: true,
+      autoReplyRef,
+    };
+  });
+}
+
+/**
+ * Marca que el enlace se envió correctamente.
+ */
+async function markAutomaticReplyAsSent({
+  autoReplyRef,
+  whatsappMessageId,
+}) {
+  const now = Timestamp.now();
+
+  await autoReplyRef.set(
+    {
+      lastMenuLinkSentAt: now,
+      lastAutoReplyStatus: "sent",
+      lastOutgoingMessageId:
+        whatsappMessageId || null,
+      lastAutoReplyError: null,
+      updatedAt: now,
+    },
+    {
+      merge: true,
+    },
+  );
+}
+
+/**
+ * Si WhatsApp no pudo aceptar el mensaje, eliminamos
+ * el cooldown para que pueda intentarse nuevamente.
+ */
+async function markAutomaticReplyAsFailed({
+  autoReplyRef,
+  error,
+}) {
+  const now = Timestamp.now();
+
+  await autoReplyRef.set(
+    {
+      lastMenuLinkSentAt: null,
+      lastAutoReplyStatus: "failed",
+      lastAutoReplyError:
+        error instanceof Error
+          ? error.message
+          : String(error),
+      lastAutoReplyErrorAt: now,
+      updatedAt: now,
+    },
+    {
+      merge: true,
+    },
+  );
+}
+
+/**
+ * Construye el mensaje automático del plan sin IA.
+ */
+function generateAutomaticMenuMessage(restaurant) {
+  const menuUrl =
+    `https://pide.platillo.mx/${restaurant.slug}`;
+
+  return `👋 ¡Hola! Gracias por contactarnos.
+
+📲 Ya puedes hacer tu pedido de forma rápida y sencilla desde nuestro menú en línea:
+
+${menuUrl}
+
+🍔 Elige tus productos
+🧀 Personalízalos a tu gusto
+💳 Consulta el total al momento
+
+¡Te esperamos!`;
+}
+
+/**
  * Meta usa esta petición para verificar el webhook.
  */
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
 
   const mode = searchParams.get("hub.mode");
-  const token = searchParams.get("hub.verify_token");
-  const challenge = searchParams.get("hub.challenge");
+  const token =
+    searchParams.get("hub.verify_token");
+  const challenge =
+    searchParams.get("hub.challenge");
 
-  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+  const verifyToken =
+    process.env.WHATSAPP_VERIFY_TOKEN;
 
   if (
     mode === "subscribe" &&
@@ -134,23 +361,22 @@ export async function GET(request) {
 
 /**
  * Envía un mensaje normal de WhatsApp.
- *
- * Usa el phone_number_id que recibió el mensaje.
- * Si no viene, usa el configurado en el entorno.
  */
 async function sendWhatsAppMessage(
   recipientPhone,
   message,
   businessPhoneNumberId,
 ) {
-  const accessToken = getRequiredEnv("WHATSAPP_TOKEN");
+  const accessToken =
+    getRequiredEnv("WHATSAPP_TOKEN");
 
   const phoneNumberId =
     businessPhoneNumberId ||
     getRequiredEnv("WHATSAPP_PHONE_NUMBER_ID");
 
   const graphVersion =
-    process.env.META_GRAPH_API_VERSION || "v25.0";
+    process.env.META_GRAPH_API_VERSION ||
+    "v25.0";
 
   const response = await fetch(
     `https://graph.facebook.com/${graphVersion}/${phoneNumberId}/messages`,
@@ -190,7 +416,7 @@ async function sendWhatsAppMessage(
 }
 
 /**
- * Construye la respuesta exacta para hacer un pedido.
+ * Respuesta directa para pedidos en el modo con IA.
  */
 function generateOrderReply(restaurant) {
   const orderUrl =
@@ -200,7 +426,7 @@ function generateOrderReply(restaurant) {
 }
 
 /**
- * Genera una respuesta general usando Gemini.
+ * Genera una respuesta general con Gemini.
  */
 async function generateGeminiReply(
   customerMessage,
@@ -209,11 +435,14 @@ async function generateGeminiReply(
   const orderUrl =
     `https://pide.platillo.mx/${restaurant.slug}`;
 
-  const response = await gemini.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: customerMessage,
-    config: {
-      systemInstruction: `
+  const gemini = getGeminiClient();
+
+  const response =
+    await gemini.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: customerMessage,
+      config: {
+        systemInstruction: `
 Eres el asistente virtual de ${restaurant.name}.
 
 Información verificada del negocio:
@@ -228,18 +457,18 @@ Reglas:
 - No digas que eres Gemini.
 - No inventes productos, precios, horarios ni información del negocio.
 - Cuando alguien quiera hacer un pedido, indícale que puede pedir en ${restaurant.name}.
-- Cuando compartas el enlace de pedidos, usa únicamente: ${orderUrl}
+- Cuando compartas el enlace, usa únicamente: ${orderUrl}
 - No cambies ni inventes otro enlace.
-      `.trim(),
-      temperature: 0.7,
-      maxOutputTokens: 350,
-    },
-  });
+        `.trim(),
+        temperature: 0.7,
+        maxOutputTokens: 350,
+      },
+    });
 
   const text = response.text?.trim();
 
   if (!text) {
-    return `Hola, soy el asistente virtual de ${restaurant.name}.`;
+    return "¿En qué puedo ayudarte?";
   }
 
   return text;
@@ -267,17 +496,13 @@ export async function POST(request) {
         const messages = value?.messages || [];
 
         /*
-         * Los eventos de enviado, entregado o leído
-         * no contienen messages.
+         * Los estados sent, delivered, read o failed
+         * no contienen value.messages.
          */
         if (messages.length === 0) {
           continue;
         }
 
-        /*
-         * Este es el número empresarial que recibió
-         * el mensaje, no el número del cliente.
-         */
         const businessPhoneNumberId =
           value?.metadata?.phone_number_id;
 
@@ -300,19 +525,24 @@ export async function POST(request) {
             businessPhoneNumberId,
           );
 
-          for (const incomingMessage of messages) {
-            const senderPhone = incomingMessage?.from;
+          continue;
+        }
 
-            if (!senderPhone) {
-              continue;
-            }
+        const whatsappMode =
+          restaurant?.whatsapp?.mode;
 
-            await sendWhatsAppMessage(
-              senderPhone,
-              "Por el momento no pude identificar el negocio asociado a este número.",
-              businessPhoneNumberId,
-            );
-          }
+        if (
+          !["auto_reply", "ai"].includes(
+            whatsappMode,
+          )
+        ) {
+          console.error(
+            "El restaurante no tiene un modo válido:",
+            {
+              restaurantId: restaurant.id,
+              whatsappMode,
+            },
+          );
 
           continue;
         }
@@ -321,24 +551,107 @@ export async function POST(request) {
           restaurantId: restaurant.id,
           name: restaurant.name,
           slug: restaurant.slug,
+          whatsappMode,
           phoneNumberId: businessPhoneNumberId,
         });
 
         for (const incomingMessage of messages) {
-          const senderPhone = incomingMessage?.from;
-          const messageType = incomingMessage?.type;
-          const messageId = incomingMessage?.id;
-
-          console.log("Mensaje entrante:", {
-            senderPhone,
-            messageType,
-            messageId,
-          });
+          const senderPhone =
+            incomingMessage?.from;
+          const messageType =
+            incomingMessage?.type;
+          const messageId =
+            incomingMessage?.id;
 
           if (!senderPhone) {
             continue;
           }
 
+          const customerName =
+            value?.contacts?.find(
+              (contact) =>
+                contact?.wa_id === senderPhone,
+            )?.profile?.name || null;
+
+          console.log("Mensaje entrante:", {
+            senderPhone,
+            customerName,
+            messageType,
+            messageId,
+            whatsappMode,
+          });
+
+          /*
+           * MODO SIN IA:
+           * Responde al primer mensaje del cliente y luego
+           * aplica el cooldown de 24 horas.
+           */
+          if (whatsappMode === "auto_reply") {
+            const {
+              shouldSend,
+              autoReplyRef,
+            } = await claimAutomaticMenuReply({
+              customerPhone: senderPhone,
+              customerName,
+              incomingMessageId: messageId,
+              restaurant,
+            });
+
+            if (!shouldSend) {
+              console.log(
+                "Autorrespuesta omitida por cooldown:",
+                {
+                  senderPhone,
+                  restaurantId: restaurant.id,
+                },
+              );
+
+              continue;
+            }
+
+            const automaticMessage =
+              generateAutomaticMenuMessage(
+                restaurant,
+              );
+
+            try {
+              const sendResult =
+                await sendWhatsAppMessage(
+                  senderPhone,
+                  automaticMessage,
+                  businessPhoneNumberId,
+                );
+
+              await markAutomaticReplyAsSent({
+                autoReplyRef,
+                whatsappMessageId:
+                  sendResult?.messages?.[0]?.id ||
+                  null,
+              });
+
+              console.log(
+                "Enlace automático enviado:",
+                {
+                  senderPhone,
+                  restaurantId: restaurant.id,
+                  slug: restaurant.slug,
+                },
+              );
+            } catch (error) {
+              await markAutomaticReplyAsFailed({
+                autoReplyRef,
+                error,
+              });
+
+              throw error;
+            }
+
+            continue;
+          }
+
+          /*
+           * MODO CON IA:
+           */
           if (messageType !== "text") {
             await sendWhatsAppMessage(
               senderPhone,
@@ -358,17 +671,17 @@ export async function POST(request) {
 
           let reply;
 
-          /*
-           * La intención de hacer un pedido se responde
-           * directamente para garantizar el enlace correcto.
-           */
-          if (wantsToPlaceOrder(customerMessage)) {
-            reply = generateOrderReply(restaurant);
+          if (
+            wantsToPlaceOrder(customerMessage)
+          ) {
+            reply =
+              generateOrderReply(restaurant);
           } else {
-            reply = await generateGeminiReply(
-              customerMessage,
-              restaurant,
-            );
+            reply =
+              await generateGeminiReply(
+                customerMessage,
+                restaurant,
+              );
           }
 
           await sendWhatsAppMessage(
@@ -389,10 +702,6 @@ export async function POST(request) {
       error,
     );
 
-    /*
-     * Devolvemos 200 para evitar que Meta reintente
-     * constantemente el mismo evento.
-     */
     return NextResponse.json({
       received: true,
       error: true,
