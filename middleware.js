@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const REAL_ROUTES = ["/", "/gordo", "/whatsapp"];
+const REAL_ROUTES = ["/", "/gordo"];
 
 function isLocalDevHost(host) {
   return (
@@ -13,22 +13,29 @@ function isAdminHost(host) {
   return host === "admin.platillo.mx" || isLocalDevHost(host);
 }
 
+function isAllowedMainRoute(pathname) {
+  return (
+    REAL_ROUTES.includes(pathname) ||
+    pathname === "/whatsapp" ||
+    pathname.startsWith("/whatsapp/")
+  );
+}
+
 export function middleware(req) {
   const host = req.headers.get("host") || "";
   const { pathname, search } = req.nextUrl;
 
   // Permitir APIs siempre.
-  // Las APIs sensibles se protegen dentro de su route.js.
   if (pathname.startsWith("/api")) {
     return NextResponse.next();
   }
 
   // ─── Admin ────────────────────────────────────────────────────────────────
   if (isAdminHost(host)) {
-    // Login siempre público
-    if (pathname === "/login") return NextResponse.next();
+    if (pathname === "/login") {
+      return NextResponse.next();
+    }
 
-    // Verificar cookie de sesión
     const token = req.cookies.get("admin_token")?.value;
 
     if (!token) {
@@ -41,11 +48,16 @@ export function middleware(req) {
   }
 
   // ─── platillo.mx ─────────────────────────────────────────────────────────
-  const isMainDomain = host === "platillo.mx";
+  const isMainDomain =
+    host === "platillo.mx" || host === "www.platillo.mx";
 
-  if (!isMainDomain) return NextResponse.next();
+  if (!isMainDomain) {
+    return NextResponse.next();
+  }
 
-  if (REAL_ROUTES.includes(pathname)) return NextResponse.next();
+  if (isAllowedMainRoute(pathname)) {
+    return NextResponse.next();
+  }
 
   return NextResponse.redirect(new URL("https://platillo.mx", req.url));
 }
