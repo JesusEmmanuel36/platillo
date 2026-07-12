@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
-import { db, authAdmin } from "@/lib/firebase-admin";
+import { db, adminAuth } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,15 +21,12 @@ export async function POST(request) {
     const authorization = request.headers.get("authorization");
 
     if (!authorization?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
     const idToken = authorization.replace("Bearer ", "").trim();
 
-    const decodedToken = await authAdmin.verifyIdToken(idToken);
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
 
     const { restaurantId } = await request.json();
 
