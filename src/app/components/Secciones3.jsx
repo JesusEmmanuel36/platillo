@@ -998,11 +998,20 @@ export function Footer() {
           padding: "20px 0",
           borderTop: "1px solid #ededed",
           fontSize: 13,
-          color: "#cbcbcb",
+          color: "#9f9f9f",
           fontFamily: "Onest, sans-serif",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 16,
+          flexWrap: "wrap",
         }}
       >
-        © {year} Platillo. Todos los derechos reservados.
+        <span>© {year} Platillo. Todos los derechos reservados.</span>
+
+        <span>
+          Platillo es un servicio operado por JESUS EMMANUEL ESTRADA RODRIGUEZ.
+        </span>
       </div>
     </footer>
   );
