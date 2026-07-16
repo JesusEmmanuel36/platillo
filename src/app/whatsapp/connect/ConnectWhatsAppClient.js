@@ -3,16 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID;
-const META_CONFIG_ID =
-  process.env.NEXT_PUBLIC_META_WHATSAPP_CONFIG_ID;
+const META_CONFIG_ID = process.env.NEXT_PUBLIC_META_WHATSAPP_CONFIG_ID;
 
 const META_GRAPH_API_VERSION =
-  process.env.META_GRAPH_API_VERSION || "v25.0";
+  process.env.NEXT_PUBLIC_META_GRAPH_API_VERSION || "v25.0";
 
-export default function ConnectWhatsAppClient({
-  token,
-  restaurantName,
-}) {
+export default function ConnectWhatsAppClient({ token, restaurantName }) {
   const [sdkReady, setSdkReady] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [status, setStatus] = useState("ready");
@@ -20,6 +16,7 @@ export default function ConnectWhatsAppClient({
 
   const authCodeRef = useRef(null);
   const signupDataRef = useRef(null);
+  const completingRef = useRef(false);
 
   useEffect(() => {
     function initializeFacebookSdk() {
@@ -37,9 +34,7 @@ export default function ConnectWhatsAppClient({
 
     window.fbAsyncInit = initializeFacebookSdk;
 
-    const existingScript = document.getElementById(
-      "facebook-jssdk",
-    );
+    const existingScript = document.getElementById("facebook-jssdk");
 
     if (existingScript) {
       if (window.FB) {
@@ -52,16 +47,13 @@ export default function ConnectWhatsAppClient({
     const script = document.createElement("script");
 
     script.id = "facebook-jssdk";
-    script.src =
-      "https://connect.facebook.net/es_LA/sdk.js";
+    script.src = "https://connect.facebook.net/es_LA/sdk.js";
     script.async = true;
     script.defer = true;
     script.crossOrigin = "anonymous";
 
     script.onerror = () => {
-      setErrorMessage(
-        "No se pudo cargar la conexión con Meta.",
-      );
+      setErrorMessage("No se pudo cargar la conexión con Meta.");
       setStatus("error");
     };
 
@@ -96,14 +88,12 @@ export default function ConnectWhatsAppClient({
       console.log("Evento de Embedded Signup:", data);
 
       if (
-        data.event ===
-          "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING" ||
+        data.event === "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING" ||
         data.event === "FINISH"
       ) {
         signupDataRef.current = {
           wabaId: data.data?.waba_id || null,
-          phoneNumberId:
-            data.data?.phone_number_id || null,
+          phoneNumberId: data.data?.phone_number_id || null,
           businessId: data.data?.business_id || null,
         };
 
@@ -118,34 +108,24 @@ export default function ConnectWhatsAppClient({
       }
 
       if (data.event === "ERROR") {
-        console.error(
-          "Error recibido desde Embedded Signup:",
-          data,
-        );
+        console.error("Error recibido desde Embedded Signup:", data);
 
         setConnecting(false);
         setStatus("error");
         setErrorMessage(
-          data.data?.error_message ||
-            "Meta no pudo completar la conexión.",
+          data.data?.error_message || "Meta no pudo completar la conexión.",
         );
       }
     }
 
-    window.addEventListener(
-      "message",
-      receiveEmbeddedSignupMessage,
-    );
+    window.addEventListener("message", receiveEmbeddedSignupMessage);
 
     return () => {
-      window.removeEventListener(
-        "message",
-        receiveEmbeddedSignupMessage,
-      );
+      window.removeEventListener("message", receiveEmbeddedSignupMessage);
     };
   }, []);
 
-  function tryToCompleteSignup() {
+  async function tryToCompleteSignup() {
     const authCode = authCodeRef.current;
     const signupData = signupDataRef.current;
 
@@ -153,28 +133,54 @@ export default function ConnectWhatsAppClient({
       return;
     }
 
-    /*
-     * En el siguiente paso enviaremos estos datos al backend:
-     *
-     * POST /api/whatsapp/embedded-signup/complete
-     *
-     * {
-     *   token,
-     *   code: authCode,
-     *   wabaId: signupData.wabaId,
-     *   phoneNumberId: signupData.phoneNumberId,
-     *   businessId: signupData.businessId
-     * }
-     */
+    if (completingRef.current) {
+      return;
+    }
 
-    console.log("Embedded Signup completado:", {
-      token,
-      code: authCode,
-      ...signupData,
-    });
+    completingRef.current = true;
 
-    setConnecting(false);
-    setStatus("authorized");
+    try {
+      setConnecting(true);
+      setStatus("saving");
+      setErrorMessage("");
+
+      const response = await fetch("/api/whatsapp/embedded-signup/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token,
+          code: authCode,
+          wabaId: signupData.wabaId,
+          phoneNumberId: signupData.phoneNumberId,
+          businessId: signupData.businessId,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error || "No se pudo conectar WhatsApp Business.",
+        );
+      }
+
+      setStatus("completed");
+    } catch (error) {
+      completingRef.current = false;
+
+      console.error("Error completando la conexión:", error);
+
+      setStatus("error");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "No se pudo terminar la conexión.",
+      );
+    } finally {
+      setConnecting(false);
+    }
   }
 
   function launchWhatsAppSignup() {
@@ -182,17 +188,13 @@ export default function ConnectWhatsAppClient({
 
     if (!META_APP_ID || !META_CONFIG_ID) {
       setStatus("error");
-      setErrorMessage(
-        "Faltan las variables de configuración de Meta.",
-      );
+      setErrorMessage("Faltan las variables de configuración de Meta.");
       return;
     }
 
     if (!sdkReady || !window.FB) {
       setStatus("error");
-      setErrorMessage(
-        "La conexión con Meta todavía no está lista.",
-      );
+      setErrorMessage("La conexión con Meta todavía no está lista.");
       return;
     }
 
@@ -201,17 +203,14 @@ export default function ConnectWhatsAppClient({
 
     window.FB.login(
       (response) => {
-        console.log(
-          "Respuesta de Facebook Login:",
-          response,
-        );
+        console.log("Respuesta de Facebook Login:", response);
 
         const code = response?.authResponse?.code;
 
         if (!code) {
           setConnecting(false);
 
-          if (status !== "authorized") {
+          if (status !== "completed") {
             setStatus("cancelled");
           }
 
@@ -227,8 +226,7 @@ export default function ConnectWhatsAppClient({
         override_default_response_type: true,
         extras: {
           sessionInfoVersion: "3",
-          featureType:
-            "whatsapp_business_app_onboarding",
+          featureType: "whatsapp_business_app_onboarding",
         },
       },
     );
@@ -305,8 +303,8 @@ export default function ConnectWhatsAppClient({
           }}
         >
           Conecta el número de WhatsApp Business de{" "}
-          <strong>{restaurantName}</strong> para responder
-          automáticamente a tus clientes desde Platillo.
+          <strong>{restaurantName}</strong> para responder automáticamente a tus
+          clientes desde Platillo.
         </p>
 
         <div
@@ -326,12 +324,12 @@ export default function ConnectWhatsAppClient({
               fontSize: 14,
             }}
           >
-            Meta te pedirá iniciar sesión, seleccionar tu
-            negocio y confirmar el número que deseas conectar.
+            Meta te pedirá iniciar sesión, seleccionar tu negocio y confirmar el
+            número que deseas conectar.
           </p>
         </div>
 
-        {status === "authorized" ? (
+        {status === "completed" ? (
           <div
             style={{
               marginTop: 20,
@@ -341,9 +339,12 @@ export default function ConnectWhatsAppClient({
               color: "#237a3c",
               fontWeight: 700,
               textAlign: "center",
+              lineHeight: 1.6,
             }}
           >
-            Autorización recibida correctamente
+            WhatsApp Business se conectó correctamente.
+            <br />
+            Ya puedes regresar a la app de Platillo.
           </div>
         ) : (
           <button
@@ -360,18 +361,16 @@ export default function ConnectWhatsAppClient({
               color: "#fff",
               fontSize: 15,
               fontWeight: 800,
-              cursor:
-                connecting || !sdkReady
-                  ? "not-allowed"
-                  : "pointer",
-              opacity:
-                connecting || !sdkReady ? 0.6 : 1,
+              cursor: connecting || !sdkReady ? "not-allowed" : "pointer",
+              opacity: connecting || !sdkReady ? 0.6 : 1,
             }}
           >
             {!sdkReady
               ? "Cargando conexión..."
               : connecting
-                ? "Conectando..."
+                ? status === "saving"
+                  ? "Guardando conexión..."
+                  : "Conectando..."
                 : "Conectar WhatsApp Business"}
           </button>
         )}
@@ -385,8 +384,7 @@ export default function ConnectWhatsAppClient({
               fontSize: 13,
             }}
           >
-            La conexión fue cancelada. Puedes intentarlo
-            nuevamente.
+            La conexión fue cancelada. Puedes intentarlo nuevamente.
           </p>
         )}
 
@@ -414,8 +412,8 @@ export default function ConnectWhatsAppClient({
             textAlign: "center",
           }}
         >
-          Este enlace es temporal y solamente permite conectar
-          el restaurante que lo generó.
+          Este enlace es temporal y solamente permite conectar el restaurante
+          que lo generó.
         </p>
       </section>
     </main>
