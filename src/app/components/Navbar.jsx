@@ -65,10 +65,10 @@ export default function Navbar() {
           className="nav-links"
         >
           {[
-            ["#como-funciona", "Cómo funciona"],
-            ["#beneficios", "Beneficios"],
-            ["#precios", "Precios"],
-            ["#faq", "FAQ"],
+            ["/#como-funciona", "Cómo funciona"],
+            ["/#beneficios", "Beneficios"],
+            ["/#precios", "Precios"],
+            ["/#faq", "FAQ"],
           ].map(([href, label]) => (
             <a
               key={href}
@@ -207,10 +207,10 @@ export default function Navbar() {
           }}
         >
           {[
-            ["#como-funciona", "Cómo funciona"],
-            ["#beneficios", "Beneficios"],
-            ["#precios", "Precios"],
-            ["#faq", "FAQ"],
+            ["/#como-funciona", "Cómo funciona"],
+            ["/#beneficios", "Beneficios"],
+            ["/#precios", "Precios"],
+            ["/#faq", "FAQ"],
           ].map(([href, label]) => (
             <a
               key={href}

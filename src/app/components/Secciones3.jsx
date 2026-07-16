@@ -851,9 +851,12 @@ export function CTAFinal() {
   );
 }
 
+// Footer 
+
 // Footer
 export function Footer() {
   const year = new Date().getFullYear();
+
   return (
     <footer
       style={{
@@ -889,10 +892,13 @@ export function Footer() {
               marginBottom: 14,
             }}
           >
-            <img src="/logo.png" className="w-18" alt="" />
-            {/*            <span style={{ color: "#ed400b" }}>●</span> Platillo
-             */}
+            <img
+              src="/logo.png"
+              className="w-18"
+              alt="Platillo"
+            />
           </a>
+
           <p
             style={{
               fontSize: 14,
@@ -906,8 +912,22 @@ export function Footer() {
             Sin comisiones. Sin complicaciones.
           </p>
         </div>
-        <div style={{ display: "flex", gap: 64 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 64,
+            flexWrap: "wrap",
+          }}
+        >
+          {/* Plataforma */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
             <p
               style={{
                 fontSize: 12,
@@ -921,11 +941,12 @@ export function Footer() {
             >
               Plataforma
             </p>
+
             {[
-              ["#como-funciona", "Cómo funciona"],
-              ["#beneficios", "Beneficios"],
-              ["#precios", "Precios"],
-              ["#faq", "FAQ"],
+              ["/#como-funciona", "Cómo funciona"],
+              ["/#beneficios", "Beneficios"],
+              ["/#precios", "Precios"],
+              ["/#faq", "FAQ"],
             ].map(([href, label]) => (
               <a
                 key={href}
@@ -937,14 +958,74 @@ export function Footer() {
                   fontFamily: "Onest, sans-serif",
                   transition: "color 0.2s",
                 }}
-                onMouseEnter={(e) => (e.target.style.color = "#000")}
-                onMouseLeave={(e) => (e.target.style.color = "#666")}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#000";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#666";
+                }}
               >
                 {label}
               </a>
             ))}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+          {/* Legal */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <p
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+                color: "#000",
+                marginBottom: 4,
+                fontFamily: "Onest, sans-serif",
+              }}
+            >
+              Legal
+            </p>
+
+            {[
+              ["/privacy", "Política de privacidad"],
+              ["/terms", "Términos y condiciones"],
+            ].map(([href, label]) => (
+              <a
+                key={href}
+                href={href}
+                style={{
+                  fontSize: 14,
+                  color: "#666",
+                  textDecoration: "none",
+                  fontFamily: "Onest, sans-serif",
+                  transition: "color 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#000";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#666";
+                }}
+              >
+                {label}
+              </a>
+            ))}
+          </div>
+
+          {/* Contacto */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
             <p
               style={{
                 fontSize: 12,
@@ -958,6 +1039,7 @@ export function Footer() {
             >
               Contacto
             </p>
+
             <a
               href={WA}
               target="_blank"
@@ -969,11 +1051,16 @@ export function Footer() {
                 fontFamily: "Onest, sans-serif",
                 transition: "color 0.2s",
               }}
-              onMouseEnter={(e) => (e.target.style.color = "#000")}
-              onMouseLeave={(e) => (e.target.style.color = "#666")}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#000";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#666";
+              }}
             >
               WhatsApp
             </a>
+
             <a
               href="mailto:hola@platillo.mx"
               style={{
@@ -983,14 +1070,19 @@ export function Footer() {
                 fontFamily: "Onest, sans-serif",
                 transition: "color 0.2s",
               }}
-              onMouseEnter={(e) => (e.target.style.color = "#000")}
-              onMouseLeave={(e) => (e.target.style.color = "#666")}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#000";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#666";
+              }}
             >
               hola@platillo.mx
             </a>
           </div>
         </div>
       </div>
+
       <div
         style={{
           maxWidth: 1000,
@@ -1007,10 +1099,13 @@ export function Footer() {
           flexWrap: "wrap",
         }}
       >
-        <span>© {year} Platillo. Todos los derechos reservados.</span>
+        <span>
+          © {year} Platillo. Todos los derechos reservados.
+        </span>
 
         <span>
-          Platillo es un servicio operado por JESUS EMMANUEL ESTRADA RODRIGUEZ.
+          Platillo es un servicio operado por JESUS EMMANUEL
+          ESTRADA RODRIGUEZ.
         </span>
       </div>
     </footer>

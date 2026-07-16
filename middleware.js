@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const REAL_ROUTES = ["/", "/gordo"];
+const REAL_ROUTES = ["/", "/gordo", "/privacy", "/terms"];
 
 function isLocalDevHost(host) {
   return (
