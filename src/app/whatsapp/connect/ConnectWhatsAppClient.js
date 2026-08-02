@@ -8,6 +8,16 @@ const META_CONFIG_ID = process.env.NEXT_PUBLIC_META_WHATSAPP_CONFIG_ID;
 const META_GRAPH_API_VERSION =
   process.env.NEXT_PUBLIC_META_GRAPH_API_VERSION || "v25.0";
 
+function isAllowedFacebookOrigin(origin) {
+  try {
+    const hostname = new URL(origin).hostname;
+
+    return hostname === "facebook.com" || hostname.endsWith(".facebook.com");
+  } catch {
+    return false;
+  }
+}
+
 export default function ConnectWhatsAppClient({ token, restaurantName }) {
   const [sdkReady, setSdkReady] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -62,12 +72,8 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
 
   useEffect(() => {
     function receiveEmbeddedSignupMessage(event) {
-      const allowedOrigins = [
-        "https://www.facebook.com",
-        "https://web.facebook.com",
-      ];
-
-      if (!allowedOrigins.includes(event.origin)) {
+      if (!isAllowedFacebookOrigin(event.origin)) {
+        console.warn("Origen ignorado por Embedded Signup:", event.origin);
         return;
       }
 
@@ -129,6 +135,13 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
     const authCode = authCodeRef.current;
     const signupData = signupDataRef.current;
     if (!authCode || !signupData?.wabaId || !signupData?.phoneNumberId) {
+      console.log("Esperando datos para completar Embedded Signup:", {
+        hasAuthCode: Boolean(authCode),
+        wabaId: signupData?.wabaId || null,
+        phoneNumberId: signupData?.phoneNumberId || null,
+        businessId: signupData?.businessId || null,
+      });
+
       return;
     }
 
@@ -183,6 +196,10 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
   }
 
   function launchWhatsAppSignup() {
+    authCodeRef.current = null;
+    signupDataRef.current = null;
+    completingRef.current = false;
+
     setErrorMessage("");
 
     if (!META_APP_ID || !META_CONFIG_ID) {
