@@ -89,9 +89,7 @@ export default async function WhatsAppConnectPage({ searchParams }) {
 
   const tokenHash = hashToken(token);
 
-  const sessionRef = db
-    .collection("whatsappConnectSessions")
-    .doc(tokenHash);
+  const sessionRef = db.collection("whatsappConnectSessions").doc(tokenHash);
 
   const sessionSnapshot = await sessionRef.get();
 
@@ -112,8 +110,7 @@ export default async function WhatsAppConnectPage({ searchParams }) {
       : 0;
 
   const expired =
-    !expirationMilliseconds ||
-    expirationMilliseconds <= Date.now();
+    !expirationMilliseconds || expirationMilliseconds <= Date.now();
 
   if (expired) {
     return (
@@ -129,6 +126,24 @@ export default async function WhatsAppConnectPage({ searchParams }) {
       <ErrorPage
         title="Enlace utilizado"
         description="Esta conexión ya fue completada. Puedes revisar el estado desde la app de Platillo."
+      />
+    );
+  }
+
+  if (session?.status === "processing") {
+    return (
+      <ErrorPage
+        title="Conexión en proceso"
+        description="Esta conexión ya se está procesando. Espera unos segundos y revisa el estado desde la app de Platillo."
+      />
+    );
+  }
+
+  if (session?.status !== "pending") {
+    return (
+      <ErrorPage
+        title="Sesión no disponible"
+        description="Esta sesión ya no está disponible. Regresa a la app de Platillo y genera un enlace nuevo."
       />
     );
   }

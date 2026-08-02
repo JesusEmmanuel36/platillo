@@ -128,8 +128,7 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
   async function tryToCompleteSignup() {
     const authCode = authCodeRef.current;
     const signupData = signupDataRef.current;
-
-    if (!authCode || !signupData?.phoneNumberId) {
+    if (!authCode || !signupData?.wabaId || !signupData?.phoneNumberId) {
       return;
     }
 
@@ -203,7 +202,10 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
 
     window.FB.login(
       (response) => {
-        console.log("Respuesta de Facebook Login:", response);
+        console.log("Facebook Login completado:", {
+          tieneCodigo: !!response?.authResponse?.code,
+          status: response?.status || null,
+        });
 
         const code = response?.authResponse?.code;
 

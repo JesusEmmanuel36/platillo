@@ -1,432 +1,518 @@
-import crypto from "crypto";
+import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 import { db } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const AUTO_REPLY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+let geminiClient = null;
+
+function getGeminiClient() {
+  if (!geminiClient) {
+    geminiClient = new GoogleGenAI({
+      apiKey: getRequiredEnv("GEMINI_API_KEY"),
+    });
+  }
+  return geminiClient;
+}
+
 function getRequiredEnv(name) {
   const value = process.env[name];
-
   if (!value) {
     throw new Error(`Falta la variable de entorno ${name}`);
   }
-
   return value;
 }
 
-function hashToken(token) {
-  return crypto.createHash("sha256").update(token).digest("hex");
+function normalizePhoneNumber(phoneNumber) {
+  return String(phoneNumber || "").replace(/\D/g, "");
 }
 
 function timestampToMilliseconds(timestamp) {
-  if (!timestamp) {
-    return 0;
-  }
-
-  if (typeof timestamp.toMillis === "function") {
-    return timestamp.toMillis();
-  }
-
-  if (typeof timestamp.toDate === "function") {
-    return timestamp.toDate().getTime();
-  }
-
+  if (!timestamp) return 0;
+  if (typeof timestamp.toMillis === "function") return timestamp.toMillis();
+  if (typeof timestamp.toDate === "function") return timestamp.toDate().getTime();
   return 0;
 }
 
-async function exchangeCodeForAccessToken(code) {
-  const appId = getRequiredEnv("META_APP_ID");
-  const appSecret = getRequiredEnv("META_APP_SECRET");
-  const graphVersion =
-    process.env.META_GRAPH_API_VERSION || "v25.0";
-
-  const url = new URL(
-    `https://graph.facebook.com/${graphVersion}/oauth/access_token`,
-  );
-
-  url.searchParams.set("client_id", appId);
-  url.searchParams.set("client_secret", appSecret);
-  url.searchParams.set("code", code);
-
-  const response = await fetch(url, {
-    method: "GET",
-    cache: "no-store",
-  });
-
-  const data = await response.json();
-
-  if (!response.ok || !data?.access_token) {
-    console.error("Error intercambiando code de Meta:", data);
-
-    throw new Error(
-      data?.error?.message ||
-        "Meta no devolvió un token de acceso válido.",
-    );
-  }
-
-  return {
-    accessToken: data.access_token,
-    tokenType: data.token_type || "bearer",
-  };
+function normalizeText(text) {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 }
 
-async function subscribeAppToWaba({
-  wabaId,
-  accessToken,
-}) {
-  const graphVersion =
-    process.env.META_GRAPH_API_VERSION || "v25.0";
-
-  const response = await fetch(
-    `https://graph.facebook.com/${graphVersion}/${encodeURIComponent(
-      wabaId,
-    )}/subscribed_apps`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      cache: "no-store",
-    },
+function wantsToPlaceOrder(message) {
+  const normalizedMessage = normalizeText(message);
+  return (
+    /\b(quiero|quisiera|deseo|necesito|me gustaria)\b.{0,35}\b(pedir|ordenar|pedido)\b/.test(normalizedMessage) ||
+    /\b(como|donde)\b.{0,30}\b(pedir|ordenar|pedido)\b/.test(normalizedMessage) ||
+    /\b(hacer|realizar|levantar)\b.{0,20}\b(un )?pedido\b/.test(normalizedMessage) ||
+    normalizedMessage.includes("voy a pedir")
   );
-
-  const data = await response.json();
-
-  if (!response.ok || data?.success !== true) {
-    console.error("Error suscribiendo WABA al webhook:", data);
-
-    throw new Error(
-      data?.error?.message ||
-        "No se pudo suscribir la cuenta de WhatsApp al webhook.",
-    );
-  }
-
-  return data;
 }
 
-async function getPhoneNumberInformation({
-  phoneNumberId,
-  accessToken,
-}) {
-  const graphVersion =
-    process.env.META_GRAPH_API_VERSION || "v25.0";
+async function getRestaurantByPhoneNumberId(phoneNumberId) {
+  if (!phoneNumberId) return null;
 
-  const fields = [
-    "display_phone_number",
-    "verified_name",
-    "quality_rating",
-    "platform_type",
-  ].join(",");
+  const snapshot = await db
+    .collection("restaurants")
+    .where("whatsapp.phoneNumberId", "==", String(phoneNumberId))
+    .limit(1)
+    .get();
 
-  const response = await fetch(
-    `https://graph.facebook.com/${graphVersion}/${encodeURIComponent(
-      phoneNumberId,
-    )}?fields=${encodeURIComponent(fields)}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      cache: "no-store",
-    },
-  );
+  if (snapshot.empty) return null;
 
-  const data = await response.json();
+  const restaurantDocument = snapshot.docs[0];
+  const restaurantData = restaurantDocument.data();
 
-  if (!response.ok) {
-    console.error(
-      "No se pudo consultar información del número:",
-      data,
-    );
-
-    /*
-     * No detenemos toda la conexión solo porque Meta no
-     * haya devuelto los detalles del número.
-     */
+  if (restaurantData?.whatsapp?.enabled !== true) {
+    console.log("WhatsApp está desactivado para este restaurante");
     return null;
   }
 
-  return data;
+  if (
+    restaurantData?.whatsapp?.status &&
+    restaurantData.whatsapp.status !== "connected"
+  ) {
+    console.log("WhatsApp no está conectado para este restaurante:", restaurantDocument.id);
+    return null;
+  }
+
+  if (!restaurantData?.name || !restaurantData?.slug) {
+    console.error("El restaurante no tiene name o slug:", restaurantDocument.id);
+    return null;
+  }
+
+  const connectionSnap = await db
+    .collection("whatsappConnections")
+    .doc(restaurantDocument.id)
+    .get();
+
+  if (!connectionSnap.exists) {
+    console.error("No existe whatsappConnections para restaurante:", restaurantDocument.id);
+    return null;
+  }
+
+  const connectionData = connectionSnap.data();
+
+  if (connectionData?.status !== "connected") {
+    console.log("whatsappConnections.status no es connected:", restaurantDocument.id);
+    return null;
+  }
+
+  if (!connectionData?.accessToken) {
+    console.error("No existe accessToken en whatsappConnections:", restaurantDocument.id);
+    return null;
+  }
+
+  if (
+    connectionData?.phoneNumberId &&
+    String(connectionData.phoneNumberId) !== String(phoneNumberId)
+  ) {
+    console.error(
+      "phoneNumberId no coincide entre webhook y whatsappConnections:",
+      restaurantDocument.id,
+    );
+    return null;
+  }
+
+  return {
+    id: restaurantDocument.id,
+    ...restaurantData,
+    whatsappConnection: {
+      accessToken: connectionData.accessToken,
+      tokenType: connectionData.tokenType || null,
+      phoneNumberId: connectionData.phoneNumberId || phoneNumberId,
+      wabaId: connectionData.wabaId || null,
+      status: connectionData.status,
+    },
+  };
+}
+
+async function claimAutomaticMenuReply({
+  customerPhone,
+  customerName,
+  incomingMessageId,
+  restaurant,
+}) {
+  const normalizedPhone = normalizePhoneNumber(customerPhone);
+
+  if (!normalizedPhone) {
+    throw new Error("No se pudo normalizar el teléfono del cliente");
+  }
+
+  const autoReplyDocumentId = `${restaurant.id}_${normalizedPhone}`;
+
+  const autoReplyRef = db
+    .collection("whatsappAutoReplies")
+    .doc(autoReplyDocumentId);
+
+  return db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(autoReplyRef);
+
+    const existingData = snapshot.data() || {};
+    const now = Timestamp.now();
+    const nowMilliseconds = now.toMillis();
+
+    const lastSentMilliseconds = timestampToMilliseconds(
+      existingData.lastMenuLinkSentAt,
+    );
+
+    const cooldownIsActive =
+      lastSentMilliseconds > 0 &&
+      nowMilliseconds - lastSentMilliseconds < AUTO_REPLY_COOLDOWN_MS;
+
+    const commonData = {
+      customerPhone: normalizedPhone,
+      customerName: customerName || null,
+      lastRestaurantId: restaurant.id,
+      lastRestaurantName: restaurant.name,
+      lastRestaurantSlug: restaurant.slug,
+      lastIncomingMessageId: incomingMessageId || null,
+      lastIncomingMessageAt: now,
+      updatedAt: now,
+    };
+
+    if (!snapshot.exists) {
+      commonData.createdAt = now;
+    }
+
+    if (cooldownIsActive) {
+      transaction.set(autoReplyRef, commonData, { merge: true });
+      return { shouldSend: false, autoReplyRef };
+    }
+
+    transaction.set(
+      autoReplyRef,
+      {
+        ...commonData,
+        lastMenuLinkSentAt: now,
+        lastAutoReplyStatus: "pending",
+      },
+      { merge: true },
+    );
+
+    return { shouldSend: true, autoReplyRef };
+  });
+}
+
+async function markAutomaticReplyAsSent({ autoReplyRef, whatsappMessageId }) {
+  const now = Timestamp.now();
+  await autoReplyRef.set(
+    {
+      lastMenuLinkSentAt: now,
+      lastAutoReplyStatus: "sent",
+      lastOutgoingMessageId: whatsappMessageId || null,
+      lastAutoReplyError: null,
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+}
+
+async function markAutomaticReplyAsFailed({ autoReplyRef, error }) {
+  const now = Timestamp.now();
+  await autoReplyRef.set(
+    {
+      lastMenuLinkSentAt: null,
+      lastAutoReplyStatus: "failed",
+      lastAutoReplyError:
+        error instanceof Error ? error.message : String(error),
+      lastAutoReplyErrorAt: now,
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+}
+
+function generateAutomaticMenuMessage(restaurant) {
+  const menuUrl = `https://pide.platillo.mx/${restaurant.slug}`;
+  return `👋 ¡Hola! Gracias por contactarnos.
+
+📲 Ya puedes hacer tu pedido de forma rápida y sencilla desde nuestro menú en línea:
+
+${menuUrl}
+
+🍔 Elige tus productos
+🧀 Personalízalos a tu gusto
+💳 Consulta el total al momento
+
+¡Te esperamos!`;
+}
+
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const mode = searchParams.get("hub.mode");
+  const token = searchParams.get("hub.verify_token");
+  const challenge = searchParams.get("hub.challenge");
+  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+
+  if (mode === "subscribe" && token === verifyToken && challenge) {
+    return new NextResponse(challenge, {
+      status: 200,
+      headers: { "Content-Type": "text/plain" },
+    });
+  }
+
+  return NextResponse.json(
+    { error: "No fue posible verificar el webhook" },
+    { status: 403 },
+  );
+}
+
+async function sendWhatsAppMessage(
+  recipientPhone,
+  message,
+  businessPhoneNumberId,
+  accessToken,
+) {
+  if (!accessToken) {
+    throw new Error("sendWhatsAppMessage: falta accessToken");
+  }
+
+  if (!businessPhoneNumberId) {
+    throw new Error("sendWhatsAppMessage: falta businessPhoneNumberId");
+  }
+
+  const graphVersion = process.env.META_GRAPH_API_VERSION || "v25.0";
+
+  const response = await fetch(
+    `https://graph.facebook.com/${graphVersion}/${encodeURIComponent(businessPhoneNumberId)}/messages`,
+    {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: recipientPhone,
+        type: "text",
+        text: {
+          preview_url: true,
+          body: message.slice(0, 4000),
+        },
+      }),
+    },
+  );
+
+  const responseBody = await response.json();
+
+  if (!response.ok) {
+    const metaErrorMessage = responseBody?.error?.message;
+    console.error("Error de WhatsApp Cloud API:", {
+      status: response.status,
+      error: metaErrorMessage || responseBody,
+    });
+    throw new Error(
+      metaErrorMessage ||
+        `Error enviando mensaje de WhatsApp: ${response.status}`,
+    );
+  }
+
+  return responseBody;
+}
+
+function generateOrderReply(restaurant) {
+  const orderUrl = `https://pide.platillo.mx/${restaurant.slug}`;
+  return `¡Claro! Puedes hacer tu pedido en ${restaurant.name} desde este enlace:\n\n${orderUrl}`;
+}
+
+async function generateGeminiReply(customerMessage, restaurant) {
+  const orderUrl = `https://pide.platillo.mx/${restaurant.slug}`;
+  const gemini = getGeminiClient();
+
+  const response = await gemini.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: customerMessage,
+    config: {
+      systemInstruction: `
+Eres el asistente virtual de ${restaurant.name}.
+
+Información verificada del negocio:
+- Nombre: ${restaurant.name}
+- Slug: ${restaurant.slug}
+- Enlace para pedidos: ${orderUrl}
+
+Reglas:
+- Responde de manera natural, amable y breve.
+- Responde en español, salvo que el cliente use claramente otro idioma.
+- Usa como máximo tres párrafos cortos.
+- No digas que eres Gemini.
+- No inventes productos, precios, horarios ni información del negocio.
+- Cuando alguien quiera hacer un pedido, indícale que puede pedir en ${restaurant.name}.
+- Cuando compartas el enlace, usa únicamente: ${orderUrl}
+- No cambies ni inventes otro enlace.
+      `.trim(),
+      temperature: 0.7,
+      maxOutputTokens: 350,
+    },
+  });
+
+  const text = response.text?.trim();
+  if (!text) return "¿En qué puedo ayudarte?";
+  return text;
 }
 
 export async function POST(request) {
-  let sessionRef = null;
-
   try {
     const body = await request.json();
 
-    const token = String(body?.token || "").trim();
-    const code = String(body?.code || "").trim();
-    const wabaId = String(body?.wabaId || "").trim();
-    const phoneNumberId = String(
-      body?.phoneNumberId || "",
-    ).trim();
+    console.log("Webhook recibido:", JSON.stringify(body, null, 2));
 
-    const businessId = body?.businessId
-      ? String(body.businessId).trim()
-      : null;
+    const entries = body?.entry || [];
 
-    if (!token || !code || !wabaId || !phoneNumberId) {
-      return NextResponse.json(
-        {
-          error:
-            "Faltan datos necesarios para completar la conexión.",
-        },
-        {
-          status: 400,
-        },
-      );
-    }
+    for (const entry of entries) {
+      const changes = entry?.changes || [];
 
-    const tokenHash = hashToken(token);
+      for (const change of changes) {
+        const value = change?.value;
+        const messages = value?.messages || [];
 
-    sessionRef = db
-      .collection("whatsappConnectSessions")
-      .doc(tokenHash);
+        if (messages.length === 0) continue;
 
-    /*
-     * Primero reclamamos la sesión dentro de una transacción.
-     * Así evitamos que dos solicitudes usen el mismo enlace
-     * simultáneamente.
-     */
-    const session = await db.runTransaction(
-      async (transaction) => {
-        const sessionSnapshot =
-          await transaction.get(sessionRef);
+        const businessPhoneNumberId = value?.metadata?.phone_number_id;
 
-        if (!sessionSnapshot.exists) {
-          throw new Error(
-            "El enlace de conexión no existe o ya no es válido.",
-          );
+        if (!businessPhoneNumberId) {
+          console.error("El webhook no contiene metadata.phone_number_id");
+          continue;
         }
 
-        const sessionData = sessionSnapshot.data();
+        const restaurant = await getRestaurantByPhoneNumberId(businessPhoneNumberId);
 
-        const expirationMilliseconds =
-          timestampToMilliseconds(sessionData?.expiresAt);
-
-        if (
-          !expirationMilliseconds ||
-          expirationMilliseconds <= Date.now()
-        ) {
-          throw new Error(
-            "El enlace de conexión venció. Genera uno nuevo desde la app.",
-          );
+        if (!restaurant) {
+          console.error("No se encontró un restaurante activo para:", businessPhoneNumberId);
+          continue;
         }
 
-        if (
-          sessionData?.used === true ||
-          sessionData?.status === "completed"
-        ) {
-          throw new Error(
-            "Este enlace de conexión ya fue utilizado.",
-          );
+        const whatsappMode = restaurant?.whatsapp?.mode;
+
+        if (!["auto_reply", "ai"].includes(whatsappMode)) {
+          console.error("El restaurante no tiene un modo válido:", {
+            restaurantId: restaurant.id,
+            whatsappMode,
+          });
+          continue;
         }
 
-        if (sessionData?.status === "processing") {
-          throw new Error(
-            "Esta conexión ya se está procesando.",
-          );
-        }
-
-        if (!sessionData?.restaurantId) {
-          throw new Error(
-            "La sesión no tiene un restaurante asociado.",
-          );
-        }
-
-        transaction.update(sessionRef, {
-          status: "processing",
-          processingStartedAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
+        console.log("Restaurante asociado:", {
+          restaurantId: restaurant.id,
+          name: restaurant.name,
+          slug: restaurant.slug,
+          whatsappMode,
+          phoneNumberId: businessPhoneNumberId,
         });
 
-        return {
-          restaurantId: sessionData.restaurantId,
-          createdByUid:
-            sessionData.createdByUid || null,
-        };
-      },
-    );
+        const { accessToken } = restaurant.whatsappConnection;
 
-    const restaurantRef = db
-      .collection("restaurants")
-      .doc(session.restaurantId);
+        for (const incomingMessage of messages) {
+          const senderPhone = incomingMessage?.from;
+          const messageType = incomingMessage?.type;
+          const messageId = incomingMessage?.id;
 
-    const restaurantSnapshot =
-      await restaurantRef.get();
+          if (!senderPhone) continue;
 
-    if (!restaurantSnapshot.exists) {
-      throw new Error(
-        "El restaurante asociado ya no existe.",
-      );
-    }
+          const customerName =
+            value?.contacts?.find(
+              (contact) => contact?.wa_id === senderPhone,
+            )?.profile?.name || null;
 
-    /*
-     * 1. Intercambiamos el code por el token empresarial.
-     */
-    const { accessToken, tokenType } =
-      await exchangeCodeForAccessToken(code);
+          console.log("Mensaje entrante:", {
+            senderPhone,
+            customerName,
+            messageType,
+            messageId,
+            whatsappMode,
+          });
 
-    /*
-     * 2. Suscribimos la app de Platillo a los webhooks
-     *    de la WABA del restaurante.
-     */
-    await subscribeAppToWaba({
-      wabaId,
-      accessToken,
-    });
+          if (whatsappMode === "auto_reply") {
+            const { shouldSend, autoReplyRef } = await claimAutomaticMenuReply({
+              customerPhone: senderPhone,
+              customerName,
+              incomingMessageId: messageId,
+              restaurant,
+            });
 
-    /*
-     * 3. Consultamos el número para obtener el número
-     *    visible que debe mostrarse en la app.
-     */
-    const phoneInformation =
-      await getPhoneNumberInformation({
-        phoneNumberId,
-        accessToken,
-      });
+            if (!shouldSend) {
+              console.log("Autorrespuesta omitida por cooldown:", {
+                senderPhone,
+                restaurantId: restaurant.id,
+              });
+              continue;
+            }
 
-    const displayPhoneNumber =
-      phoneInformation?.display_phone_number || null;
+            const automaticMessage = generateAutomaticMenuMessage(restaurant);
 
-    const connectedAt = Timestamp.now();
+            try {
+              const sendResult = await sendWhatsAppMessage(
+                senderPhone,
+                automaticMessage,
+                businessPhoneNumberId,
+                accessToken,
+              );
 
-    /*
-     * 4. Guardamos la conexión respetando el mapa
-     *    whatsapp que ya tienes en restaurants.
-     */
-    await restaurantRef.set(
-      {
-        whatsapp: {
-          displayPhoneNumber,
-          enabled: true,
-          mode: "auto_reply",
-          phoneNumberId,
-          wabaId,
+              await markAutomaticReplyAsSent({
+                autoReplyRef,
+                whatsappMessageId: sendResult?.messages?.[0]?.id || null,
+              });
 
-          businessId,
-          accessToken,
-          tokenType,
+              console.log("Enlace automático enviado:", {
+                senderPhone,
+                restaurantId: restaurant.id,
+                slug: restaurant.slug,
+              });
+            } catch (error) {
+              await markAutomaticReplyAsFailed({ autoReplyRef, error });
+              throw error;
+            }
 
-          connectionType: "coexistence",
-          provider: "embedded_signup",
-          status: "connected",
-          webhookSubscribed: true,
+            continue;
+          }
 
-          verifiedName:
-            phoneInformation?.verified_name || null,
-          qualityRating:
-            phoneInformation?.quality_rating || null,
-          platformType:
-            phoneInformation?.platform_type || null,
+          if (whatsappMode === "ai") {
+            if (messageType !== "text") {
+              await sendWhatsAppMessage(
+                senderPhone,
+                "Por ahora solamente puedo responder mensajes de texto.",
+                businessPhoneNumberId,
+                accessToken,
+              );
+              continue;
+            }
 
-          connectedByUid:
-            session.createdByUid || null,
-          connectedAt,
-          updatedAt: connectedAt,
-        },
-      },
-      {
-        merge: true,
-      },
-    );
+            const customerMessage = incomingMessage?.text?.body?.trim();
 
-    /*
-     * 5. Marcamos el enlace temporal como utilizado.
-     */
-    await sessionRef.set(
-      {
-        used: true,
-        status: "completed",
-        completedAt: connectedAt,
-        updatedAt: connectedAt,
+            if (!customerMessage) continue;
 
-        connectedWabaId: wabaId,
-        connectedPhoneNumberId: phoneNumberId,
-        lastError: FieldValue.delete(),
-        failedAt: FieldValue.delete(),
-      },
-      {
-        merge: true,
-      },
-    );
+            let reply;
 
-    return NextResponse.json({
-      ok: true,
-      restaurantId: session.restaurantId,
-      whatsapp: {
-        displayPhoneNumber,
-        phoneNumberId,
-        wabaId,
-        businessId,
-        status: "connected",
-      },
-    });
-  } catch (error) {
-    console.error(
-      "Error completando Embedded Signup:",
-      error,
-    );
+            if (wantsToPlaceOrder(customerMessage)) {
+              reply = generateOrderReply(restaurant);
+            } else {
+              reply = await generateGeminiReply(customerMessage, restaurant);
+            }
 
-    /*
-     * Si algo falla después de reclamar la sesión,
-     * la devolvemos a pending para que el dueño pueda
-     * intentar otra vez mientras el enlace siga vigente.
-     */
-    if (sessionRef) {
-      try {
-        await sessionRef.set(
-          {
-            status: "pending",
-            used: false,
-            lastError:
-              error instanceof Error
-                ? error.message
-                : String(error),
-            failedAt: Timestamp.now(),
-            updatedAt: Timestamp.now(),
-            processingStartedAt: FieldValue.delete(),
-          },
-          {
-            merge: true,
-          },
-        );
-      } catch (sessionError) {
-        console.error(
-          "No se pudo actualizar la sesión fallida:",
-          sessionError,
-        );
+            await sendWhatsAppMessage(
+              senderPhone,
+              reply,
+              businessPhoneNumberId,
+              accessToken,
+            );
+          }
+        }
       }
     }
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "No se pudo completar la conexión de WhatsApp.";
-
-    const clientErrors = [
-      "no existe",
-      "venció",
-      "ya fue utilizado",
-      "ya se está procesando",
-      "no tiene un restaurante",
-      "ya no existe",
-    ];
-
-    const isClientError = clientErrors.some((text) =>
-      message.toLowerCase().includes(text),
-    );
-
-    return NextResponse.json(
-      {
-        error: message,
-      },
-      {
-        status: isClientError ? 400 : 500,
-      },
-    );
+    return NextResponse.json({ received: true });
+  } catch (error) {
+    console.error("Error en webhook de WhatsApp:", error);
+    return NextResponse.json({ received: true, error: true });
   }
 }
