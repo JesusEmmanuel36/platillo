@@ -18,6 +18,18 @@ function isAllowedFacebookOrigin(origin) {
   }
 }
 
+function normalizeSignupData(data) {
+  const eventData = data?.data || {};
+
+  return {
+    wabaId: eventData.waba_id || eventData.wabaId || null,
+
+    phoneNumberId: eventData.phone_number_id || eventData.phoneNumberId || null,
+
+    businessId: eventData.business_id || eventData.businessId || null,
+  };
+}
+
 export default function ConnectWhatsAppClient({ token, restaurantName }) {
   const [sdkReady, setSdkReady] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -28,15 +40,113 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
   const signupDataRef = useRef(null);
   const completingRef = useRef(false);
 
+  async function tryToCompleteSignup() {
+    const authCode = authCodeRef.current;
+    const signupData = signupDataRef.current;
+
+    /*
+     * El code y el evento de Embedded Signup pueden llegar
+     * en diferente orden. Esperamos hasta tener ambos.
+     *
+     * phoneNumberId no es obligatorio aquí porque Meta puede
+     * terminar con FINISH_ONLY_WABA. En ese caso, el backend
+     * buscará el número mediante el wabaId.
+     */
+    if (!authCode || !signupData?.wabaId) {
+      console.log("Esperando datos para completar Embedded Signup:", {
+        hasAuthCode: Boolean(authCode),
+        wabaId: signupData?.wabaId || null,
+        phoneNumberId: signupData?.phoneNumberId || null,
+        businessId: signupData?.businessId || null,
+      });
+
+      return;
+    }
+
+    if (completingRef.current) {
+      console.log("La conexión ya se está guardando.");
+      return;
+    }
+
+    completingRef.current = true;
+
+    try {
+      setConnecting(true);
+      setStatus("saving");
+      setErrorMessage("");
+
+      console.log("Enviando Embedded Signup al backend:", {
+        hasToken: Boolean(token),
+        hasCode: Boolean(authCode),
+        wabaId: signupData.wabaId,
+        phoneNumberId: signupData.phoneNumberId || null,
+        businessId: signupData.businessId || null,
+      });
+
+      const response = await fetch("/api/whatsapp/embedded-signup/complete", {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token,
+          code: authCode,
+          wabaId: signupData.wabaId,
+          phoneNumberId: signupData.phoneNumberId || null,
+          businessId: signupData.businessId || null,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      console.log("Respuesta de Embedded Signup complete:", {
+        status: response.status,
+        ok: response.ok,
+        result,
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error ||
+            `No se pudo conectar WhatsApp Business (${response.status}).`,
+        );
+      }
+
+      setStatus("completed");
+    } catch (error) {
+      completingRef.current = false;
+
+      console.error("Error completando la conexión:", error);
+
+      setStatus("error");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "No se pudo terminar la conexión.",
+      );
+    } finally {
+      setConnecting(false);
+    }
+  }
+
   useEffect(() => {
     function initializeFacebookSdk() {
-      if (!window.FB) return;
+      if (!window.FB) {
+        return;
+      }
 
       window.FB.init({
         appId: META_APP_ID,
         cookie: true,
         xfbml: false,
         version: META_GRAPH_API_VERSION,
+      });
+
+      console.log("SDK de Facebook inicializado:", {
+        appIdConfigured: Boolean(META_APP_ID),
+        configIdConfigured: Boolean(META_CONFIG_ID),
+        graphVersion: META_GRAPH_API_VERSION,
       });
 
       setSdkReady(true);
@@ -63,6 +173,9 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
     script.crossOrigin = "anonymous";
 
     script.onerror = () => {
+      console.error("No se pudo cargar el SDK de Facebook.");
+
+      setConnecting(false);
       setErrorMessage("No se pudo cargar la conexión con Meta.");
       setStatus("error");
     };
@@ -73,7 +186,6 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
   useEffect(() => {
     function receiveEmbeddedSignupMessage(event) {
       if (!isAllowedFacebookOrigin(event.origin)) {
-        console.warn("Origen ignorado por Embedded Signup:", event.origin);
         return;
       }
 
@@ -83,6 +195,7 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
         try {
           data = JSON.parse(data);
         } catch {
+          console.log("Mensaje no JSON recibido desde Facebook:", event.data);
           return;
         }
       }
@@ -91,36 +204,54 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
         return;
       }
 
-      console.log("Evento de Embedded Signup:", data);
+      console.log("Evento de Embedded Signup recibido:", {
+        event: data.event || null,
+        data: data.data || null,
+      });
 
-      if (
-        data.event === "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING" ||
-        data.event === "FINISH"
-      ) {
-        signupDataRef.current = {
-          wabaId: data.data?.waba_id || null,
-          phoneNumberId: data.data?.phone_number_id || null,
-          businessId: data.data?.business_id || null,
-        };
+      const finishedEvents = [
+        "FINISH",
+        "FINISH_ONLY_WABA",
+        "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING",
+      ];
+
+      if (finishedEvents.includes(data.event)) {
+        const normalizedData = normalizeSignupData(data);
+
+        signupDataRef.current = normalizedData;
+
+        console.log("Embedded Signup finalizado:", {
+          event: data.event,
+          ...normalizedData,
+        });
 
         tryToCompleteSignup();
         return;
       }
 
       if (data.event === "CANCEL") {
+        console.warn("Embedded Signup cancelado:", {
+          currentStep:
+            data.data?.current_step || data.data?.currentStep || null,
+        });
+
         setConnecting(false);
         setStatus("cancelled");
         return;
       }
 
       if (data.event === "ERROR") {
+        const metaError =
+          data.data?.error_message ||
+          data.data?.errorMessage ||
+          "Meta no pudo completar la conexión.";
+
         console.error("Error recibido desde Embedded Signup:", data);
 
+        completingRef.current = false;
         setConnecting(false);
         setStatus("error");
-        setErrorMessage(
-          data.data?.error_message || "Meta no pudo completar la conexión.",
-        );
+        setErrorMessage(metaError);
       }
     }
 
@@ -131,78 +262,20 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
     };
   }, []);
 
-  async function tryToCompleteSignup() {
-    const authCode = authCodeRef.current;
-    const signupData = signupDataRef.current;
-    if (!authCode || !signupData?.wabaId || !signupData?.phoneNumberId) {
-      console.log("Esperando datos para completar Embedded Signup:", {
-        hasAuthCode: Boolean(authCode),
-        wabaId: signupData?.wabaId || null,
-        phoneNumberId: signupData?.phoneNumberId || null,
-        businessId: signupData?.businessId || null,
-      });
-
-      return;
-    }
-
-    if (completingRef.current) {
-      return;
-    }
-
-    completingRef.current = true;
-
-    try {
-      setConnecting(true);
-      setStatus("saving");
-      setErrorMessage("");
-
-      const response = await fetch("/api/whatsapp/embedded-signup/complete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          token,
-          code: authCode,
-          wabaId: signupData.wabaId,
-          phoneNumberId: signupData.phoneNumberId,
-          businessId: signupData.businessId,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result?.error || "No se pudo conectar WhatsApp Business.",
-        );
-      }
-
-      setStatus("completed");
-    } catch (error) {
-      completingRef.current = false;
-
-      console.error("Error completando la conexión:", error);
-
-      setStatus("error");
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "No se pudo terminar la conexión.",
-      );
-    } finally {
-      setConnecting(false);
-    }
-  }
-
   function launchWhatsAppSignup() {
     authCodeRef.current = null;
     signupDataRef.current = null;
     completingRef.current = false;
 
     setErrorMessage("");
+    setStatus("connecting");
 
     if (!META_APP_ID || !META_CONFIG_ID) {
+      console.error("Faltan variables públicas de Meta:", {
+        hasAppId: Boolean(META_APP_ID),
+        hasConfigId: Boolean(META_CONFIG_ID),
+      });
+
       setStatus("error");
       setErrorMessage("Faltan las variables de configuración de Meta.");
       return;
@@ -215,36 +288,36 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
     }
 
     setConnecting(true);
-    setStatus("connecting");
+
+    console.log("Iniciando WhatsApp Embedded Signup.");
 
     window.FB.login(
       (response) => {
-        console.log("Facebook Login completado:", {
-          tieneCodigo: !!response?.authResponse?.code,
-          status: response?.status || null,
-        });
+        const code = response?.authResponse?.code || null;
 
-        const code = response?.authResponse?.code;
+        console.log("Facebook Login completado:", {
+          hasCode: Boolean(code),
+          status: response?.status || null,
+          authResponseExists: Boolean(response?.authResponse),
+        });
 
         if (!code) {
           setConnecting(false);
-
-          if (status !== "completed") {
-            setStatus("cancelled");
-          }
-
+          setStatus("cancelled");
           return;
         }
 
         authCodeRef.current = code;
+
         tryToCompleteSignup();
       },
       {
         config_id: META_CONFIG_ID,
+        auth_type: "rerequest",
         response_type: "code",
         override_default_response_type: true,
         extras: {
-          sessionInfoVersion: "3",
+          sessionInfoVersion: 3,
           featureType: "whatsapp_business_app_onboarding",
         },
       },

@@ -8,11 +8,9 @@ export const dynamic = "force-dynamic";
 
 function getRequiredEnv(name) {
   const value = process.env[name];
-
   if (!value) {
     throw new Error(`Falta la variable de entorno ${name}`);
   }
-
   return value;
 }
 
@@ -21,18 +19,9 @@ function hashToken(token) {
 }
 
 function timestampToMilliseconds(timestamp) {
-  if (!timestamp) {
-    return 0;
-  }
-
-  if (typeof timestamp.toMillis === "function") {
-    return timestamp.toMillis();
-  }
-
-  if (typeof timestamp.toDate === "function") {
-    return timestamp.toDate().getTime();
-  }
-
+  if (!timestamp) return 0;
+  if (typeof timestamp.toMillis === "function") return timestamp.toMillis();
+  if (typeof timestamp.toDate === "function") return timestamp.toDate().getTime();
   return 0;
 }
 
@@ -57,8 +46,7 @@ async function exchangeCodeForAccessToken(code) {
   const data = await response.json();
 
   if (!response.ok || !data?.access_token) {
-    console.error("Error intercambiando code de Meta:", data);
-
+    console.error("Error intercambiando code de Meta:", data?.error?.message || data);
     throw new Error(
       data?.error?.message || "Meta no devolvió un token de acceso válido.",
     );
@@ -74,9 +62,7 @@ async function subscribeAppToWaba({ wabaId, accessToken }) {
   const graphVersion = process.env.META_GRAPH_API_VERSION || "v25.0";
 
   const response = await fetch(
-    `https://graph.facebook.com/${graphVersion}/${encodeURIComponent(
-      wabaId,
-    )}/subscribed_apps`,
+    `https://graph.facebook.com/${graphVersion}/${encodeURIComponent(wabaId)}/subscribed_apps`,
     {
       method: "POST",
       headers: {
@@ -89,8 +75,7 @@ async function subscribeAppToWaba({ wabaId, accessToken }) {
   const data = await response.json();
 
   if (!response.ok || data?.success !== true) {
-    console.error("Error suscribiendo WABA al webhook:", data);
-
+    console.error("Error suscribiendo WABA al webhook:", data?.error?.message || data);
     throw new Error(
       data?.error?.message ||
         "No se pudo suscribir la cuenta de WhatsApp al webhook.",
@@ -104,6 +89,7 @@ async function getPhoneNumberInformation({ phoneNumberId, accessToken }) {
   const graphVersion = process.env.META_GRAPH_API_VERSION || "v25.0";
 
   const fields = [
+    "id",
     "display_phone_number",
     "verified_name",
     "quality_rating",
@@ -126,20 +112,58 @@ async function getPhoneNumberInformation({ phoneNumberId, accessToken }) {
   const data = await response.json();
 
   if (!response.ok) {
-    console.error("No se pudo consultar información del número:", data);
-
-    /*
-     * No detenemos toda la conexión solo porque Meta no
-     * haya devuelto los detalles del número.
-     */
+    console.error(
+      "No se pudo consultar información del número:",
+      data?.error?.message || data,
+    );
     return null;
   }
 
   return data;
 }
 
+async function getPhoneNumbersFromWaba({ wabaId, accessToken }) {
+  const graphVersion = process.env.META_GRAPH_API_VERSION || "v25.0";
+
+const fields = [
+  "id",
+  "display_phone_number",
+  "verified_name",
+  "quality_rating",
+].join(",");
+
+  const response = await fetch(
+    `https://graph.facebook.com/${graphVersion}/${encodeURIComponent(
+      wabaId,
+    )}/phone_numbers?fields=${encodeURIComponent(fields)}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      cache: "no-store",
+    },
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error(
+      "Error consultando números de la WABA:",
+      data?.error?.message || data,
+    );
+    throw new Error(
+      data?.error?.message ||
+        "No se pudieron obtener los números de teléfono de la WABA.",
+    );
+  }
+
+  return Array.isArray(data?.data) ? data.data : [];
+}
+
 export async function POST(request) {
   let sessionRef = null;
+  let sessionClaimed = false;
 
   try {
     const body = await request.json();
@@ -147,18 +171,29 @@ export async function POST(request) {
     const token = String(body?.token || "").trim();
     const code = String(body?.code || "").trim();
     const wabaId = String(body?.wabaId || "").trim();
-    const phoneNumberId = String(body?.phoneNumberId || "").trim();
 
-    const businessId = body?.businessId ? String(body.businessId).trim() : null;
+    const phoneNumberIdRaw =
+      body?.phoneNumberId != null
+        ? String(body.phoneNumberId).trim()
+        : null;
 
-    if (!token || !code || !wabaId || !phoneNumberId) {
+    const phoneNumberIdFromFrontend =
+      phoneNumberIdRaw && phoneNumberIdRaw.length > 0
+        ? phoneNumberIdRaw
+        : null;
+
+    const businessId =
+      body?.businessId ? String(body.businessId).trim() : null;
+
+    console.log("Embedded Signup — inicio:", {
+      hasPhoneNumberId: !!phoneNumberIdFromFrontend,
+      wabaId,
+    });
+
+    if (!token || !code || !wabaId) {
       return NextResponse.json(
-        {
-          error: "Faltan datos necesarios para completar la conexión.",
-        },
-        {
-          status: 400,
-        },
+        { error: "Faltan datos necesarios para completar la conexión." },
+        { status: 400 },
       );
     }
 
@@ -166,11 +201,6 @@ export async function POST(request) {
 
     sessionRef = db.collection("whatsappConnectSessions").doc(tokenHash);
 
-    /*
-     * Primero reclamamos la sesión dentro de una transacción.
-     * Así evitamos que dos solicitudes usen el mismo enlace
-     * simultáneamente.
-     */
     const session = await db.runTransaction(async (transaction) => {
       const sessionSnapshot = await transaction.get(sessionRef);
 
@@ -214,6 +244,8 @@ export async function POST(request) {
       };
     });
 
+    sessionClaimed = true;
+
     const restaurantRef = db
       .collection("restaurants")
       .doc(session.restaurantId);
@@ -233,21 +265,88 @@ export async function POST(request) {
      * 2. Suscribimos la app de Platillo a los webhooks
      *    de la WABA del restaurante.
      */
-    await subscribeAppToWaba({
-      wabaId,
-      accessToken,
-    });
+    await subscribeAppToWaba({ wabaId, accessToken });
 
     /*
-     * 3. Consultamos el número para obtener el número
-     *    visible que debe mostrarse en la app.
+     * 3. Resolvemos el phoneNumberId.
      */
-    const phoneInformation = await getPhoneNumberInformation({
-      phoneNumberId,
-      accessToken,
-    });
+    let resolvedPhoneNumberId = null;
+    let phoneInformation = null;
 
-    const displayPhoneNumber = phoneInformation?.display_phone_number || null;
+    if (phoneNumberIdFromFrontend) {
+      console.log("Usando phoneNumberId del frontend:", phoneNumberIdFromFrontend);
+
+      resolvedPhoneNumberId = String(phoneNumberIdFromFrontend);
+
+      const info = await getPhoneNumberInformation({
+        phoneNumberId: resolvedPhoneNumberId,
+        accessToken,
+      });
+
+      if (info) {
+        phoneInformation = info;
+      }
+    } else {
+      console.log("phoneNumberId no recibido — consultando números de la WABA:", wabaId);
+
+      const wabaNumbers = await getPhoneNumbersFromWaba({ wabaId, accessToken });
+
+      console.log("Números encontrados en la WABA:", wabaNumbers.length);
+
+      if (wabaNumbers.length === 0) {
+        throw new Error(
+          "La cuenta de WhatsApp Business no tiene números de teléfono asociados.",
+        );
+      }
+
+      if (wabaNumbers.length === 1) {
+  const chosen = wabaNumbers[0];
+
+  if (!chosen?.id) {
+    throw new Error(
+      "Meta devolvió un número de WhatsApp sin un identificador válido.",
+    );
+  }
+
+  resolvedPhoneNumberId = String(chosen.id);
+  phoneInformation = chosen;
+
+  console.log(
+    "Número seleccionado porque es el único de la WABA:",
+    resolvedPhoneNumberId,
+  );
+} else {
+  throw new Error(
+    "La cuenta de WhatsApp Business tiene varios números y Meta no indicó cuál fue seleccionado.",
+  );
+}
+
+      /*
+       * Si tenemos el ID pero la información viene de
+       * getPhoneNumbersFromWaba, intentamos enriquecerla
+       * con getPhoneNumberInformation. Si falla, conservamos
+       * lo que ya tenemos.
+       */
+      const enriched = await getPhoneNumberInformation({
+        phoneNumberId: resolvedPhoneNumberId,
+        accessToken,
+      });
+
+      if (enriched) {
+        phoneInformation = enriched;
+      }
+    }
+
+    if (!resolvedPhoneNumberId) {
+      throw new Error(
+        "No se pudo determinar el número de teléfono de WhatsApp.",
+      );
+    }
+
+    console.log("resolvedPhoneNumberId:", resolvedPhoneNumberId);
+
+    const displayPhoneNumber =
+      phoneInformation?.display_phone_number || null;
 
     const connectedAt = Timestamp.now();
 
@@ -257,7 +356,7 @@ export async function POST(request) {
      */
     const existingPhoneSnapshot = await db
       .collection("restaurants")
-      .where("whatsapp.phoneNumberId", "==", phoneNumberId)
+      .where("whatsapp.phoneNumberId", "==", resolvedPhoneNumberId)
       .limit(2)
       .get();
 
@@ -271,21 +370,12 @@ export async function POST(request) {
       );
     }
 
-    /*
-     * Documento privado de la conexión.
-     * Aquí se guarda el accessToken porque no debe estar
-     * dentro del documento público restaurants.
-     */
     const connectionRef = db
       .collection("whatsappConnections")
       .doc(session.restaurantId);
 
     const connectionSnapshot = await connectionRef.get();
 
-    /*
-     * Información visible y no secreta que necesita
-     * la aplicación de Platillo.
-     */
     const restaurantWhatsappData = {
       displayPhoneNumber,
 
@@ -293,7 +383,7 @@ export async function POST(request) {
       status: "connected",
       mode: "auto_reply",
 
-      phoneNumberId,
+      phoneNumberId: resolvedPhoneNumberId,
       wabaId,
       businessId,
 
@@ -315,16 +405,13 @@ export async function POST(request) {
       lastError: null,
     };
 
-    /*
-     * Información privada que solamente utilizará el backend.
-     */
     const privateConnectionData = {
       restaurantId: session.restaurantId,
 
       accessToken,
       tokenType,
 
-      phoneNumberId,
+      phoneNumberId: resolvedPhoneNumberId,
       wabaId,
       businessId,
 
@@ -336,34 +423,19 @@ export async function POST(request) {
       updatedAt: connectedAt,
     };
 
-    /*
-     * createdAt solamente se establece la primera vez.
-     * Si el restaurante reconecta el número, se conserva
-     * la fecha original.
-     */
     if (!connectionSnapshot.exists) {
       privateConnectionData.createdAt = connectedAt;
     }
 
-    /*
-     * Usamos un batch para que las tres escrituras de
-     * Firestore ocurran juntas.
-     */
     const batch = db.batch();
 
     batch.set(
       restaurantRef,
-      {
-        whatsapp: restaurantWhatsappData,
-      },
-      {
-        merge: true,
-      },
+      { whatsapp: restaurantWhatsappData },
+      { merge: true },
     );
 
-    batch.set(connectionRef, privateConnectionData, {
-      merge: true,
-    });
+    batch.set(connectionRef, privateConnectionData, { merge: true });
 
     batch.set(
       sessionRef,
@@ -375,52 +447,52 @@ export async function POST(request) {
         updatedAt: connectedAt,
 
         connectedWabaId: wabaId,
-        connectedPhoneNumberId: phoneNumberId,
+        connectedPhoneNumberId: resolvedPhoneNumberId,
 
         lastError: FieldValue.delete(),
         failedAt: FieldValue.delete(),
         processingStartedAt: FieldValue.delete(),
       },
-      {
-        merge: true,
-      },
+      { merge: true },
     );
 
     await batch.commit();
+
+    console.log("Embedded Signup completado:", {
+      restaurantId: session.restaurantId,
+      resolvedPhoneNumberId,
+    });
 
     return NextResponse.json({
       ok: true,
       restaurantId: session.restaurantId,
       whatsapp: {
         displayPhoneNumber,
-        phoneNumberId,
+        phoneNumberId: resolvedPhoneNumberId,
         wabaId,
         businessId,
         status: "connected",
       },
     });
   } catch (error) {
-    console.error("Error completando Embedded Signup:", error);
+    console.error(
+      "Error completando Embedded Signup:",
+      error instanceof Error ? error.message : error,
+    );
 
-    /*
-     * Si algo falla después de reclamar la sesión,
-     * la devolvemos a pending para que el dueño pueda
-     * intentar otra vez mientras el enlace siga vigente.
-     */
-    if (sessionRef) {
+    if (sessionRef && sessionClaimed) {
       try {
         await sessionRef.set(
           {
             status: "pending",
             used: false,
-            lastError: error instanceof Error ? error.message : String(error),
+            lastError:
+              error instanceof Error ? error.message : String(error),
             failedAt: Timestamp.now(),
             updatedAt: Timestamp.now(),
             processingStartedAt: FieldValue.delete(),
           },
-          {
-            merge: true,
-          },
+          { merge: true },
         );
       } catch (sessionError) {
         console.error("No se pudo actualizar la sesión fallida:", sessionError);
@@ -439,6 +511,9 @@ export async function POST(request) {
       "ya se está procesando",
       "no tiene un restaurante",
       "ya no existe",
+      "ya está conectado",
+      "no fue posible identificar",
+      "no tiene números",
     ];
 
     const isClientError = clientErrors.some((text) =>
@@ -446,12 +521,8 @@ export async function POST(request) {
     );
 
     return NextResponse.json(
-      {
-        error: message,
-      },
-      {
-        status: isClientError ? 400 : 500,
-      },
+      { error: message },
+      { status: isClientError ? 400 : 500 },
     );
   }
 }
