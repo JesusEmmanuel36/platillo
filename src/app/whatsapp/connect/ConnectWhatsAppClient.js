@@ -40,50 +40,43 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
   const signupDataRef = useRef(null);
   const completingRef = useRef(false);
 
-  async function tryToCompleteSignup() {
-    const authCode = authCodeRef.current;
-    const signupData = signupDataRef.current;
+async function tryToCompleteSignup() {
+  const authCode = authCodeRef.current;
+  const signupData = signupDataRef.current || {};
 
-    /*
-     * El code y el evento de Embedded Signup pueden llegar
-     * en diferente orden. Esperamos hasta tener ambos.
-     *
-     * phoneNumberId no es obligatorio aquí porque Meta puede
-     * terminar con FINISH_ONLY_WABA. En ese caso, el backend
-     * buscará el número mediante el wabaId.
-     */
-    if (!authCode || !signupData?.wabaId) {
-      console.log("Esperando datos para completar Embedded Signup:", {
-        hasAuthCode: Boolean(authCode),
-        wabaId: signupData?.wabaId || null,
-        phoneNumberId: signupData?.phoneNumberId || null,
-        businessId: signupData?.businessId || null,
-      });
+  /*
+   * En cuanto Facebook devuelve el código, llamamos al backend.
+   * wabaId, phoneNumberId y businessId son opcionales.
+   * Si no llegan desde Meta, el backend deberá resolverlos.
+   */
+  if (!authCode) {
+    console.log("Esperando el código de autorización de Meta.");
+    return;
+  }
 
-      return;
-    }
+  if (completingRef.current) {
+    console.log("La conexión ya se está guardando.");
+    return;
+  }
 
-    if (completingRef.current) {
-      console.log("La conexión ya se está guardando.");
-      return;
-    }
+  completingRef.current = true;
 
-    completingRef.current = true;
+  try {
+    setConnecting(true);
+    setStatus("saving");
+    setErrorMessage("");
 
-    try {
-      setConnecting(true);
-      setStatus("saving");
-      setErrorMessage("");
+    console.log("Enviando Embedded Signup al backend:", {
+      hasToken: Boolean(token),
+      hasCode: Boolean(authCode),
+      wabaId: signupData?.wabaId || null,
+      phoneNumberId: signupData?.phoneNumberId || null,
+      businessId: signupData?.businessId || null,
+    });
 
-      console.log("Enviando Embedded Signup al backend:", {
-        hasToken: Boolean(token),
-        hasCode: Boolean(authCode),
-        wabaId: signupData.wabaId,
-        phoneNumberId: signupData.phoneNumberId || null,
-        businessId: signupData.businessId || null,
-      });
-
-      const response = await fetch("/api/whatsapp/embedded-signup/complete", {
+    const response = await fetch(
+      "/api/whatsapp/embedded-signup/complete",
+      {
         method: "POST",
         cache: "no-store",
         headers: {
@@ -92,43 +85,44 @@ export default function ConnectWhatsAppClient({ token, restaurantName }) {
         body: JSON.stringify({
           token,
           code: authCode,
-          wabaId: signupData.wabaId,
-          phoneNumberId: signupData.phoneNumberId || null,
-          businessId: signupData.businessId || null,
+          wabaId: signupData?.wabaId || null,
+          phoneNumberId: signupData?.phoneNumberId || null,
+          businessId: signupData?.businessId || null,
         }),
-      });
+      },
+    );
 
-      const result = await response.json().catch(() => null);
+    const result = await response.json().catch(() => null);
 
-      console.log("Respuesta de Embedded Signup complete:", {
-        status: response.status,
-        ok: response.ok,
-        result,
-      });
+    console.log("Respuesta de Embedded Signup complete:", {
+      status: response.status,
+      ok: response.ok,
+      result,
+    });
 
-      if (!response.ok) {
-        throw new Error(
-          result?.error ||
-            `No se pudo conectar WhatsApp Business (${response.status}).`,
-        );
-      }
-
-      setStatus("completed");
-    } catch (error) {
-      completingRef.current = false;
-
-      console.error("Error completando la conexión:", error);
-
-      setStatus("error");
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "No se pudo terminar la conexión.",
+    if (!response.ok) {
+      throw new Error(
+        result?.error ||
+          `No se pudo conectar WhatsApp Business (${response.status}).`,
       );
-    } finally {
-      setConnecting(false);
     }
+
+    setStatus("completed");
+  } catch (error) {
+    completingRef.current = false;
+
+    console.error("Error completando la conexión:", error);
+
+    setStatus("error");
+    setErrorMessage(
+      error instanceof Error
+        ? error.message
+        : "No se pudo terminar la conexión.",
+    );
+  } finally {
+    setConnecting(false);
   }
+}
 
   useEffect(() => {
     function initializeFacebookSdk() {
