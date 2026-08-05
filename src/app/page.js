@@ -1,6 +1,8 @@
 import { headers } from "next/headers";
 import LandingClient from "./LandingClient";
 import AdminDashboard from "@/components/AdminDashboard";
+import PanelShell from "@/components/panel/PanelShell";
+import PanelHome from "@/components/panel/PanelHome";
 import { requireSuperAdmin } from "@/lib/require-super-admin";
 import { requireRestaurant } from "@/lib/panel-auth";
 
@@ -64,7 +66,6 @@ export default async function Page() {
   const headersList = await headers();
   const host = headersList.get("host") || "";
 
-  // ─── Administrador interno de Platillo ───────────────────────────────────
   if (isAdminHost(host)) {
     const session = await requireSuperAdmin();
 
@@ -76,7 +77,7 @@ export default async function Page() {
               Acceso denegado
             </p>
 
-            <p className="text-sm text-[var(--gray-color)] mt-1">
+            <p className="mt-1 text-sm text-[var(--gray-color)]">
               Tu cuenta no tiene permisos de superadmin.
             </p>
           </div>
@@ -87,32 +88,25 @@ export default async function Page() {
     return <AdminDashboard />;
   }
 
-  // ─── Panel de restaurantes ───────────────────────────────────────────────
   if (isPanelHost(host)) {
     const session = await requireRestaurant();
 
+    const restaurantName =
+      session.restaurant?.name ||
+      session.restaurant?.nombre ||
+      "Mi restaurante";
+
+    const slug = session.restaurant?.slug || null;
+
     return (
-      <main className="min-h-screen flex items-center justify-center bg-[var(--background)] p-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-[var(--foreground)]">
-            Panel de Platillo
-          </h1>
-
-          <p className="mt-2 text-[var(--gray-color)]">
-            Sesión iniciada correctamente.
-          </p>
-
-          <p className="mt-1 text-sm text-[var(--gray-color)]">
-            Restaurante:{" "}
-            {session.restaurant?.name ||
-              session.restaurant?.nombre ||
-              session.restaurantId}
-          </p>
-        </div>
-      </main>
+      <PanelShell
+        restaurantName={restaurantName}
+        slug={slug}
+      >
+        <PanelHome restaurantName={restaurantName} />
+      </PanelShell>
     );
   }
 
-  // ─── Landing pública ─────────────────────────────────────────────────────
   return <LandingClient />;
 }
