@@ -122,10 +122,7 @@ export default function RestaurantLogin() {
             className="w-[110px] h-auto object-contain"
           />
 
-          <div className="mt-3">
-            <h1 className="text-xl font-bold text-[var(--foreground)]">
-              Inicia sesión
-            </h1>
+          <div className="mt-1"> 
 
             <p className="text-sm text-[var(--gray-color)] mt-1">
               Accede al panel de tu restaurante
