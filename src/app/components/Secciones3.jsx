@@ -1102,11 +1102,7 @@ export function Footer() {
         <span>
           © {year} Platillo. Todos los derechos reservados.
         </span>
-
-        <span>
-          Platillo es un servicio operado por JESUS EMMANUEL
-          ESTRADA RODRIGUEZ.
-        </span>
+ 
       </div>
     </footer>
   );
