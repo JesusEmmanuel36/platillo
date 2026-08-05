@@ -19,13 +19,8 @@ function isPanelHost(host) {
 
   return (
     hostname === "panel.platillo.mx" ||
-    (
-      process.env.NODE_ENV !== "production" &&
-      (
-        hostname === "localhost" ||
-        hostname === "127.0.0.1"
-      )
-    )
+    (process.env.NODE_ENV !== "production" &&
+      (hostname === "localhost" || hostname === "127.0.0.1"))
   );
 }
 
@@ -38,8 +33,7 @@ export async function generateMetadata() {
       title: {
         absolute: "Admin - Platillo",
       },
-      description:
-        "Panel interno de administración de Platillo",
+      description: "Panel interno de administración de Platillo",
     };
   }
 
@@ -48,8 +42,7 @@ export async function generateMetadata() {
       title: {
         absolute: "Panel - Platillo",
       },
-      description:
-        "Panel de administración para restaurantes",
+      description: "Panel de administración para restaurantes",
     };
   }
 
@@ -96,11 +89,21 @@ export default async function Page() {
       session.restaurant?.nombre ||
       "Mi restaurante";
 
+    const restaurantImage =
+      session.restaurant?.imageUrl ||
+      session.restaurant?.pfp ||
+      session.restaurant?.logoUrl ||
+      session.restaurant?.image ||
+      session.restaurant?.logo ||
+       
+      null;
+
     const slug = session.restaurant?.slug || null;
 
     return (
       <PanelShell
         restaurantName={restaurantName}
+        restaurantImage={restaurantImage}
         slug={slug}
       >
         <PanelHome restaurantName={restaurantName} />

@@ -162,23 +162,38 @@ function ExternalLinkIcon({ className = "" }) {
 function SidebarContent({
   pathname,
   restaurantName,
+  restaurantImage,
   onNavigate,
 }) {
   return (
     <div className="flex h-full flex-col">
       <div className="px-4 pt-5">
-        <div className="rounded-2xl border border-[var(--half-gray)] bg-[var(--background)] p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent-color)]">
-            Restaurante
-          </p>
+        <div className="flex items-center gap-3 rounded-[8px] border-[0.5 px] border border-[var(--half-gray)] p-4">
+          {restaurantImage ? (
+            <img
+              src={restaurantImage}
+              alt={restaurantName || "Restaurante"}
+              className="h-12 w-12 shrink-0 rounded-[6px] object-cover"
+            />
+          ) : (
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[8px] bg-[var(--light-accent)] text-lg font-black uppercase text-[var(--accent-color)]">
+              {(restaurantName || "R").charAt(0)}
+            </div>
+          )}
 
-          <p className="mt-1 truncate text-sm font-black text-[var(--foreground)]">
-            {restaurantName || "Mi restaurante"}
-          </p>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent-color)]">
+              Restaurante
+            </p>
 
-          <p className="mt-1 text-xs text-[var(--gray-color)]">
-            Panel de administración
-          </p>
+            <p className="mt-1 truncate text-sm font-black text-[var(--foreground)]">
+              {restaurantName || "Mi restaurante"}
+            </p>
+
+            <p className="mt-1 text-xs text-[var(--gray-color)]">
+              Panel de administración
+            </p>
+          </div>
         </div>
       </div>
 
@@ -187,8 +202,7 @@ function SidebarContent({
           const Icon = item.icon;
 
           const active =
-            pathname === item.href ||
-            pathname.startsWith(`${item.href}/`);
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           return (
             <Link
@@ -196,21 +210,17 @@ function SidebarContent({
               href={item.href}
               onClick={onNavigate}
               aria-current={active ? "page" : undefined}
-              className={`group relative flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-bold transition-all ${
+              className={`group relative flex items-center gap-3 rounded-[8px] px-3.5 py-3 text-sm font-semibold transition-all ${
                 active
-                  ? "bg-[var(--light-accent)] text-[var(--foreground)]"
-                  : "text-[var(--gray-color)] hover:bg-[var(--light-gray)] hover:text-[var(--foreground)]"
+                  ? "bg-[var(--accent-color)] text-[var(--background)] "
+                  : "text-[var(--foreground)] hover:bg-[var(--light-gray)]"
               }`}
             >
-              {active && (
-                <span className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-[var(--accent-color)]" />
-              )}
-
               <Icon
                 className={`h-5 w-5 shrink-0 transition-colors ${
                   active
-                    ? "text-[var(--accent-color)]"
-                    : "text-[var(--gray-color)] group-hover:text-[var(--accent-color)]"
+                    ? "text-[var(--background)]"
+                    : "text-[var(--foreground)] "
                 }`}
               />
 
@@ -232,6 +242,7 @@ function SidebarContent({
 export default function PanelShell({
   children,
   restaurantName,
+  restaurantImage,
   slug,
 }) {
   const pathname = usePathname();
@@ -246,7 +257,7 @@ export default function PanelShell({
   }, [pathname]);
 
   return (
-    <div className="min-h-screen bg-[var(--light-gray)] text-[var(--foreground)]">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <header className="fixed inset-x-0 top-0 z-50 h-16 border-b border-[var(--half-gray)] bg-[var(--background)]/95 backdrop-blur-xl">
         <div className="flex h-full items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3">
@@ -255,9 +266,7 @@ export default function PanelShell({
               onClick={() => setMobileOpen((current) => !current)}
               className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--half-gray)] text-[var(--foreground)] transition-colors hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] lg:hidden"
               aria-label={
-                mobileOpen
-                  ? "Cerrar menú lateral"
-                  : "Abrir menú lateral"
+                mobileOpen ? "Cerrar menú lateral" : "Abrir menú lateral"
               }
             >
               {mobileOpen ? (
@@ -286,9 +295,7 @@ export default function PanelShell({
               >
                 <ExternalLinkIcon className="h-4 w-4" />
 
-                <span className="hidden sm:inline">
-                  Ver menú
-                </span>
+                <span className="hidden sm:inline">Ver menú</span>
               </a>
             ) : (
               <button
@@ -299,9 +306,7 @@ export default function PanelShell({
               >
                 <ExternalLinkIcon className="h-4 w-4" />
 
-                <span className="hidden sm:inline">
-                  Ver menú
-                </span>
+                <span className="hidden sm:inline">Ver menú</span>
               </button>
             )}
 
@@ -314,6 +319,7 @@ export default function PanelShell({
         <SidebarContent
           pathname={pathname}
           restaurantName={restaurantName}
+          restaurantImage={restaurantImage}
         />
       </aside>
 
@@ -330,6 +336,7 @@ export default function PanelShell({
             <SidebarContent
               pathname={pathname}
               restaurantName={restaurantName}
+              restaurantImage={restaurantImage}
               onNavigate={() => setMobileOpen(false)}
             />
           </aside>
