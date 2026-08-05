@@ -2,15 +2,30 @@ import { NextResponse } from "next/server";
 
 const REAL_ROUTES = ["/", "/gordo", "/privacy", "/terms"];
 
+function getHostname(host) {
+  return host.split(":")[0].toLowerCase();
+}
+
 function isLocalDevHost(host) {
+  const hostname = getHostname(host);
+
   return (
     process.env.NODE_ENV !== "production" &&
-    (host.startsWith("localhost:") || host.startsWith("127.0.0.1:"))
+    (hostname === "localhost" || hostname === "127.0.0.1")
   );
 }
 
 function isAdminHost(host) {
-  return host === "admin.platillo.mx" || isLocalDevHost(host);
+  return getHostname(host) === "admin.platillo.mx";
+}
+
+function isPanelHost(host) {
+  const hostname = getHostname(host);
+
+  return (
+    hostname === "panel.platillo.mx" ||
+    isLocalDevHost(host)
+  );
 }
 
 function isAllowedMainRoute(pathname) {
@@ -23,15 +38,17 @@ function isAllowedMainRoute(pathname) {
 
 export function middleware(req) {
   const host = req.headers.get("host") || "";
+  const hostname = getHostname(host);
   const { pathname, search } = req.nextUrl;
 
-  // Permitir APIs siempre.
+  // Permitir las APIs en todos los dominios.
   if (pathname.startsWith("/api")) {
     return NextResponse.next();
   }
 
-  // ─── Admin ────────────────────────────────────────────────────────────────
+  // ─── Admin interno de Platillo ───────────────────────────────────────────
   if (isAdminHost(host)) {
+    // La página /login decidirá mostrar AdminLogin.
     if (pathname === "/login") {
       return NextResponse.next();
     }
@@ -40,16 +57,59 @@ export function middleware(req) {
 
     if (!token) {
       const loginUrl = new URL("/login", req.url);
-      loginUrl.searchParams.set("next", `${pathname}${search || ""}`);
+
+      loginUrl.searchParams.set(
+        "next",
+        `${pathname}${search || ""}`,
+      );
+
       return NextResponse.redirect(loginUrl);
     }
 
     return NextResponse.next();
   }
 
-  // ─── platillo.mx ─────────────────────────────────────────────────────────
+  // ─── Panel de restaurantes ───────────────────────────────────────────────
+  if (isPanelHost(host)) {
+    // panel.platillo.mx
+    // → panel.platillo.mx/login
+    //
+    // localhost:3000
+    // → localhost:3000/login
+    if (pathname === "/") {
+      return NextResponse.redirect(
+        new URL("/login", req.url),
+      );
+    }
+
+    // La página /login decidirá mostrar RestaurantLogin.
+    if (pathname === "/login") {
+      return NextResponse.next();
+    }
+
+    /*
+     * Más adelante aquí revisarás la sesión del restaurante:
+     *
+     * const panelToken =
+     *   req.cookies.get("panel_token")?.value;
+     *
+     * if (!panelToken) {
+     *   const loginUrl = new URL("/login", req.url);
+     *   loginUrl.searchParams.set(
+     *     "next",
+     *     `${pathname}${search || ""}`,
+     *   );
+     *   return NextResponse.redirect(loginUrl);
+     * }
+     */
+
+    return NextResponse.next();
+  }
+
+  // ─── Dominio principal platillo.mx ───────────────────────────────────────
   const isMainDomain =
-    host === "platillo.mx" || host === "www.platillo.mx";
+    hostname === "platillo.mx" ||
+    hostname === "www.platillo.mx";
 
   if (!isMainDomain) {
     return NextResponse.next();
@@ -59,7 +119,9 @@ export function middleware(req) {
     return NextResponse.next();
   }
 
-  return NextResponse.redirect(new URL("https://platillo.mx", req.url));
+  return NextResponse.redirect(
+    new URL("https://platillo.mx", req.url),
+  );
 }
 
 export const config = {
