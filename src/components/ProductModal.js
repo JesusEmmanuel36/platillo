@@ -92,7 +92,7 @@ export default function ProductOptionsModal({ product, onClose, onAdded }) {
         {/* SCROLL OPCIONES */}
 
         <div className="flex flex-col max-h-[300px] overflow-y-auto gap-2 p-4 pt-0">
-          <div className="h-[200px] w-full bg-red-200 rounded rounded-t-none">
+          <div className="h-[100px] w-full bg-red-200 rounded rounded-t-none">
             <img
               src={product.image}
               className="w-full h-full object-cover rounded rounded-t-none"
