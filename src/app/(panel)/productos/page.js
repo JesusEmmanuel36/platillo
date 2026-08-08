@@ -1,17 +1,20 @@
-import PanelPagePlaceholder from "@/components/panel/PanelPagePlaceholder";
+import ProductsPanel from "@/components/panel/products/ProductsPanel";
+import { requireRestaurant } from "@/lib/panel-auth";
 
 export const metadata = {
   title: {
     absolute: "Productos - Platillo",
   },
+  description:
+    "Administra productos, categorías, precios, imágenes y disponibilidad.",
 };
 
-export default function ProductsPage() {
+export default async function ProductsPage() {
+  const session = await requireRestaurant();
+
   return (
-    <PanelPagePlaceholder
-      eyebrow="Catálogo"
-      title="Productos"
-      description="Administra productos, categorías, precios, imágenes y disponibilidad."
+    <ProductsPanel
+      restaurantId={session.restaurantId}
     />
   );
 }

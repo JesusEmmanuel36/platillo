@@ -1,17 +1,26 @@
-import PanelPagePlaceholder from "@/components/panel/PanelPagePlaceholder";
+import AnalyticsPanel from "@/components/panel/analytics/AnalyticsPanel";
+import { requireRestaurant } from "@/lib/panel-auth";
 
 export const metadata = {
   title: {
     absolute: "Analíticas - Platillo",
   },
+  description:
+    "Consulta ventas, pedidos, productos populares y el rendimiento de tu restaurante.",
 };
 
-export default function AnalyticsPage() {
+export default async function AnalyticsPage() {
+  const session = await requireRestaurant();
+
+  const restaurantName =
+    session.restaurant?.name ||
+    session.restaurant?.nombre ||
+    "Mi restaurante";
+
   return (
-    <PanelPagePlaceholder
-      eyebrow="Resultados"
-      title="Analíticas"
-      description="Consulta ventas, pedidos, productos populares y el rendimiento de tu restaurante."
+    <AnalyticsPanel
+      restaurantId={session.restaurantId}
+      restaurantName={restaurantName}
     />
   );
 }

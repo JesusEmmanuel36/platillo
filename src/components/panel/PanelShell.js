@@ -167,35 +167,7 @@ function SidebarContent({
 }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="px-4 pt-5">
-        <div className="flex items-center gap-3 rounded-[8px] border-[0.5 px] border border-[var(--half-gray)] p-4">
-          {restaurantImage ? (
-            <img
-              src={restaurantImage}
-              alt={restaurantName || "Restaurante"}
-              className="h-12 w-12 shrink-0 rounded-[6px] object-cover"
-            />
-          ) : (
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[8px] bg-[var(--light-accent)] text-lg font-black uppercase text-[var(--accent-color)]">
-              {(restaurantName || "R").charAt(0)}
-            </div>
-          )}
-
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent-color)]">
-              Restaurante
-            </p>
-
-            <p className="mt-1 truncate text-sm font-black text-[var(--foreground)]">
-              {restaurantName || "Mi restaurante"}
-            </p>
-
-            <p className="mt-1 text-xs text-[var(--gray-color)]">
-              Panel de administración
-            </p>
-          </div>
-        </div>
-      </div>
+  
 
       <nav className="flex-1 space-y-1.5 px-3 py-5">
         {NAVIGATION.map((item) => {
