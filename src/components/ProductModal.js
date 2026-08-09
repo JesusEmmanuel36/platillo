@@ -65,7 +65,7 @@ export default function ProductOptionsModal({ product, onClose, onAdded }) {
 
   return (
 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4">
-  <div className="flex max-h-[92dvh] w-full max-w-[420px] flex-col overflow-hidden rounded-[22px] bg-white">
+  <div className="flex max-h-[92dvh] w-full max-w-[480px] flex-col overflow-hidden rounded-[22px] bg-white">
         {/* Header */}
         <div className="flex justify-between items-center border-b p-4">
           <h3 className="font-bold text-lg">
