@@ -162,7 +162,7 @@ function Section({ id, eyebrow, title, description, children }) {
   return (
     <section
       id={id}
-      className="scroll-mt-24 overflow-hidden rounded-xl bg-[var(--background)] shadow-[0_0px_3px_rgba(0,0,0,0.2)] "
+      className="scroll-mt-24 overflow-hidden rounded-xl bg-[var(--background)] shadow-[0_1px_2px_rgba(0,0,0,0.2)] "
     >
       <div className="px-5 py-5 sm:px-6 sm:py-6">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-color)]">

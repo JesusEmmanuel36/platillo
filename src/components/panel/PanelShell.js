@@ -229,7 +229,7 @@ export default function PanelShell({
   }, [pathname]);
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+    <div className="min-h-screen bg-[var(--light-background)] text-[var(--foreground)]">
       <header className="fixed inset-x-0 top-0 z-50 h-16 border-b border-[var(--half-gray)] bg-[var(--background)]/95 backdrop-blur-xl">
         <div className="flex h-full items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3">

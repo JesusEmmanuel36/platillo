@@ -480,7 +480,7 @@ export async function POST(req) {
     if (metodoPago === "efectivo" || metodoPago === "transferencia") {
       const pedidoRef = await db.collection("orders").add({
         ...pedidoCompleto,
-        status: "preparando",
+        status: "procesando",
         creadoEn: new Date(),
       });
 

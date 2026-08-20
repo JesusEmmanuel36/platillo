@@ -42,6 +42,11 @@
   --half-gray: #cbcbcb;
   --accent-color: #ed400b;
   --light-accent: #efa886;
+  --light-background: #f7f7f7;
+  --local-color: #aedeb7;
+  --local-text-color: #2e7d32;
+  --pendiente-color: #ffefa0;
+  --pendiente-text-color: #ba8b00;
 }
 
 body {

@@ -10,44 +10,33 @@ import {
   where,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 
 const STATUS_CONFIG = {
   pendiente: {
     label: "Nuevo",
-    classes:
-      "bg-[var(--light-accent)] text-[var(--accent-color)]",
+    classes: "bg-[var(--light-accent)] text-[var(--accent-color)]",
   },
   preparando: {
     label: "Preparando",
-    classes:
-      "bg-[var(--light-accent)] text-[var(--accent-color)]",
+    classes: "bg-[var(--pendiente-color)] text-[var(--pendiente-text-color)]",
   },
   listo: {
     label: "Listo",
-    classes:
-      "bg-[var(--green-color)] text-[var(--green-text-color)]",
+    classes: "bg-[var(--green-color)] text-[var(--green-text-color)]",
   },
   en_camino: {
     label: "Listo",
-    classes:
-      "bg-[var(--green-color)] text-[var(--green-text-color)]",
+    classes: "bg-[var(--green-color)] text-[var(--green-text-color)]",
   },
   entregado: {
     label: "Entregado",
-    classes:
-      "bg-[var(--green-color)] text-[var(--green-text-color)]",
+    classes: "bg-[var(--green-color)] text-[var(--green-text-color)]",
   },
   cancelado: {
     label: "Cancelado",
-    classes:
-      "bg-[var(--red-color)] text-[var(--red-text-color)]",
+    classes: "bg-[var(--red-color)] text-[var(--red-text-color)]",
   },
 };
 
@@ -101,9 +90,7 @@ function timestampToDate(timestamp) {
 
   const date = new Date(timestamp);
 
-  return Number.isNaN(date.getTime())
-    ? null
-    : date;
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function sameDay(firstDate, secondDate) {
@@ -112,8 +99,7 @@ function sameDay(firstDate, secondDate) {
   return (
     firstDate.getDate() === secondDate.getDate() &&
     firstDate.getMonth() === secondDate.getMonth() &&
-    firstDate.getFullYear() ===
-      secondDate.getFullYear()
+    firstDate.getFullYear() === secondDate.getFullYear()
   );
 }
 
@@ -129,13 +115,10 @@ function formatOrderDate(timestamp) {
 
   yesterday.setDate(today.getDate() - 1);
 
-  const time = date.toLocaleTimeString(
-    "es-MX",
-    {
-      hour: "2-digit",
-      minute: "2-digit",
-    },
-  );
+  const time = date.toLocaleTimeString("es-MX", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   if (sameDay(date, today)) {
     return `Hoy · ${time}`;
@@ -162,8 +145,7 @@ function getOrderNumber(orderId) {
 
 function getItemCount(order) {
   return (order.items || []).reduce(
-    (total, item) =>
-      total + (Number(item.quantity) || 1),
+    (total, item) => total + (Number(item.quantity) || 1),
     0,
   );
 }
@@ -177,8 +159,7 @@ function getOrderSummary(order) {
 
   return items
     .map((item) => {
-      const quantity =
-        Number(item.quantity) || 1;
+      const quantity = Number(item.quantity) || 1;
 
       return `${quantity} ${item.name || "Producto"}`;
     })
@@ -186,10 +167,7 @@ function getOrderSummary(order) {
 }
 
 function getOptionLines(options) {
-  if (
-    !options ||
-    typeof options !== "object"
-  ) {
+  if (!options || typeof options !== "object") {
     return [];
   }
 
@@ -200,15 +178,10 @@ function getOptionLines(options) {
       }
 
       if (typeof value === "string") {
-        return value.trim()
-          ? `${title}: ${value}`
-          : null;
+        return value.trim() ? `${title}: ${value}` : null;
       }
 
-      if (
-        typeof value === "number" ||
-        typeof value === "boolean"
-      ) {
+      if (typeof value === "number" || typeof value === "boolean") {
         return `${title}: ${String(value)}`;
       }
 
@@ -223,15 +196,10 @@ function getOptionLines(options) {
           })
           .filter(Boolean);
 
-        return choices.length
-          ? `${title}: ${choices.join(", ")}`
-          : null;
+        return choices.length ? `${title}: ${choices.join(", ")}` : null;
       }
 
-      if (
-        typeof value === "object" &&
-        value.name
-      ) {
+      if (typeof value === "object" && value.name) {
         return `${title}: ${value.name}`;
       }
 
@@ -241,24 +209,17 @@ function getOptionLines(options) {
             if (!choice) return "";
 
             const name =
-              typeof choice === "string"
-                ? choice
-                : choice.name || "";
+              typeof choice === "string" ? choice : choice.name || "";
 
-            const quantity =
-              Number(choice.quantity) || 1;
+            const quantity = Number(choice.quantity) || 1;
 
             if (!name) return "";
 
-            return quantity > 1
-              ? `${name} x${quantity}`
-              : name;
+            return quantity > 1 ? `${name} x${quantity}` : name;
           })
           .filter(Boolean);
 
-        return choices.length
-          ? `${title}: ${choices.join(", ")}`
-          : null;
+        return choices.length ? `${title}: ${choices.join(", ")}` : null;
       }
 
       return null;
@@ -288,11 +249,7 @@ function getFirebaseUser() {
     const timeout = setTimeout(() => {
       unsubscribe();
 
-      reject(
-        new Error(
-          "No se encontró una sesión de Firebase activa.",
-        ),
-      );
+      reject(new Error("No se encontró una sesión de Firebase activa."));
     }, 5000);
 
     unsubscribe = onAuthStateChanged(
@@ -302,11 +259,7 @@ function getFirebaseUser() {
         unsubscribe();
 
         if (!user) {
-          reject(
-            new Error(
-              "No se encontró una sesión de Firebase activa.",
-            ),
-          );
+          reject(new Error("No se encontró una sesión de Firebase activa."));
 
           return;
         }
@@ -323,25 +276,21 @@ function getFirebaseUser() {
 }
 
 function StatusBadge({ status }) {
-  const config =
-    STATUS_CONFIG[status] || {
-      label: status || "Sin estado",
-      classes:
-        "bg-[var(--light-gray)] text-[var(--gray-color)]",
-    };
+  const config = STATUS_CONFIG[status] || {
+    label: status || "Sin estado",
+    classes: "bg-[var(--light-gray)] text-[var(--gray-color)]",
+  };
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-bold ${config.classes}`}
+      className={`inline-flex shrink-0 items-center rounded-xl px-2.5 py-1 text-[11px] font-bold ${config.classes}`}
     >
       {config.label}
     </span>
   );
 }
 
-function SearchIcon({
-  className = "",
-}) {
+function SearchIcon({ className = "" }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -359,9 +308,7 @@ function SearchIcon({
   );
 }
 
-function BellIcon({
-  className = "",
-}) {
+function BellIcon({ className = "" }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -379,9 +326,7 @@ function BellIcon({
   );
 }
 
-function CloseIcon({
-  className = "",
-}) {
+function CloseIcon({ className = "" }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -398,9 +343,7 @@ function CloseIcon({
   );
 }
 
-function ChevronIcon({
-  className = "",
-}) {
+function ChevronIcon({ className = "" }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -417,25 +360,16 @@ function ChevronIcon({
   );
 }
 
-function SummaryCard({
-  label,
-  value,
-  description,
-  tone = "neutral",
-}) {
+function SummaryCard({ label, value, description, tone = "neutral" }) {
   const toneClasses = {
-    neutral:
-      "text-[var(--foreground)]",
-    accent:
-      "text-[var(--accent-color)]",
-    green:
-      "text-[var(--green-text-color)]",
-    red:
-      "text-[var(--red-text-color)]",
+    neutral: "text-[var(--foreground)]",
+    accent: "text-[var(--accent-color)]",
+    green: "text-[var(--green-text-color)]",
+    red: "text-[var(--red-text-color)]",
   };
 
   return (
-    <div className="rounded-2xl border border-[var(--half-gray)] bg-[var(--background)] p-5">
+    <div className="rounded-2xl  shadow-[0_1px_2px_rgba(0,0,0,0.1)] bg-[var(--background)] p-5">
       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--gray-color)]">
         {label}
       </p>
@@ -446,100 +380,78 @@ function SummaryCard({
         {value}
       </p>
 
-      <p className="mt-1 text-xs text-[var(--gray-color)]">
-        {description}
-      </p>
+      <p className="mt-1 text-xs text-[var(--gray-color)]">{description}</p>
     </div>
   );
 }
 
-function OrderCard({
-  order,
-  onOpen,
-}) {
-  const isDelivery =
-    order.entrega?.tipo === "domicilio";
+function OrderCard({ order, onOpen }) {
+  const isDelivery = order.entrega?.tipo === "domicilio";
 
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(order.id)}
-      className="group w-full rounded-2xl border border-[var(--half-gray)] bg-[var(--background)] p-5 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--accent-color)] hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)]"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-base font-black text-[var(--foreground)]">
-              {order.cliente?.nombre ||
-                "Cliente sin nombre"}
-            </p>
+    <button type="button" onClick={() => onOpen(order.id)}>
+      <div
+        className={` group w-full rounded-3xl  bg-[var(--background)] p-5 text-left shadow-[0_1px_2px_rgba(0,0,0,0.1)]   rounded-3xl transition-all hover:-translate-y-0.5 hover:border border-[var(--accent-color)] hover:shadow-[0_10px_45px_rgba(0,0,0,0.08)] `}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="truncate text-base font-black text-[var(--foreground)]">
+                {order.cliente?.nombre || "Cliente sin nombre"}
+              </p>
 
-            <span className="text-xs text-[var(--gray-color)]">
-              #{getOrderNumber(order.id)}
-            </span>
+              <span className="text-xs text-[var(--gray-color)]">
+                #{getOrderNumber(order.id)}
+              </span>
+            </div>
+
+            <p className="mt-1 text-xs text-[var(--gray-color)]">
+              {formatOrderDate(order.creadoEn)}
+            </p>
           </div>
 
-          <p className="mt-1 text-xs text-[var(--gray-color)]">
-            {formatOrderDate(
-              order.creadoEn,
-            )}
-          </p>
+          <StatusBadge status={order.status} />
         </div>
 
-        <StatusBadge
-          status={order.status}
-        />
-      </div>
+        <p className="mt-4 line-clamp-2 min-h-10 text-sm leading-5 text-[var(--gray-color)]">
+          {getOrderSummary(order)}
+        </p>
 
-      <p className="mt-4 line-clamp-2 min-h-10 text-sm leading-5 text-[var(--gray-color)]">
-        {getOrderSummary(order)}
-      </p>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-[var(--light-gray)] px-2.5 py-1 text-[11px] font-bold text-[var(--foreground)]">
+            {isDelivery ? "Envío a domicilio" : "Recoge en local"}
+          </span>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-[var(--light-gray)] px-2.5 py-1 text-[11px] font-bold text-[var(--foreground)]">
-          {isDelivery
-            ? "Envío a domicilio"
-            : "Recoge en local"}
-        </span>
-
-        <span className="rounded-full bg-[var(--light-gray)] px-2.5 py-1 text-[11px] font-bold text-[var(--gray-color)]">
-          {getItemCount(order)}{" "}
-          {getItemCount(order) === 1
-            ? "producto"
-            : "productos"}
-        </span>
-      </div>
-
-      <div className="mt-5 flex items-end justify-between gap-4 border-t border-[var(--light-gray)] pt-4">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--gray-color)]">
-            Total
-          </p>
-
-          <p className="mt-1 text-xl font-black text-[var(--accent-color)]">
-            {formatCurrency(
-              order.total,
-            )}
-          </p>
+          <span className="rounded-full bg-[var(--light-gray)] px-2.5 py-1 text-[11px] font-bold text-[var(--gray-color)]">
+            {getItemCount(order)}{" "}
+            {getItemCount(order) === 1 ? "producto" : "productos"}
+          </span>
         </div>
 
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--light-gray)] text-[var(--foreground)] transition-all group-hover:bg-[var(--accent-color)] group-hover:text-white">
-          <ChevronIcon className="h-4 w-4" />
+        <div className="mt-5 flex items-end justify-between gap-4 border-t border-[var(--light-gray)] pt-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--gray-color)]">
+              Total
+            </p>
+
+            <p className="mt-1 text-xl font-black text-[var(--accent-color)]">
+              {formatCurrency(order.total)}
+            </p>
+          </div>
+
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--light-gray)] text-[var(--foreground)] transition-all group-hover:bg-[var(--accent-color)] group-hover:text-white">
+            <ChevronIcon className="h-4 w-4" />
+          </div>
         </div>
       </div>
     </button>
   );
 }
 
-function InfoRow({
-  label,
-  value,
-}) {
+function InfoRow({ label, value }) {
   return (
     <div className="flex items-start justify-between gap-5 border-b border-[var(--light-gray)] py-3 last:border-b-0">
-      <p className="text-sm text-[var(--gray-color)]">
-        {label}
-      </p>
+      <p className="text-sm text-[var(--gray-color)]">{label}</p>
 
       <p className="max-w-[65%] text-right text-sm font-bold text-[var(--foreground)]">
         {value || "—"}
@@ -548,13 +460,9 @@ function InfoRow({
   );
 }
 
-function ModalSection({
-  eyebrow,
-  title,
-  children,
-}) {
+function ModalSection({ eyebrow, title, children }) {
   return (
-    <section className="rounded-2xl border border-[var(--half-gray)] bg-[var(--background)] p-5">
+    <section className="rounded-2xl  shadow-[0_1px_5px_rgba(0,0,0,0.1)] bg-[var(--background)] p-5">
       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent-color)]">
         {eyebrow}
       </p>
@@ -563,27 +471,16 @@ function ModalSection({
         {title}
       </h3>
 
-      <div className="mt-4">
-        {children}
-      </div>
+      <div className="mt-4">{children}</div>
     </section>
   );
 }
 
-function OrderModal({
-  order,
-  loadingAction,
-  onClose,
-  onAdvance,
-  onCancel,
-}) {
-  const [cancelMode, setCancelMode] =
-    useState(false);
+function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel }) {
+  const [cancelMode, setCancelMode] = useState(false);
 
-  const [
-    cancellationReason,
-    setCancellationReason,
-  ] = useState("");
+  const [cancellationReason, setCancellationReason] = useState("")
+  
 
   useEffect(() => {
     setCancelMode(false);
@@ -593,49 +490,33 @@ function OrderModal({
   useEffect(() => {
     if (!order) return undefined;
 
-    const previousOverflow =
-      document.body.style.overflow;
+    const previousOverflow = document.body.style.overflow;
 
-    document.body.style.overflow =
-      "hidden";
+    document.body.style.overflow = "hidden";
 
     function handleKeyDown(event) {
-      if (
-        event.key === "Escape" &&
-        !loadingAction
-      ) {
+      if (event.key === "Escape" && !loadingAction) {
         onClose();
       }
     }
 
-    window.addEventListener(
-      "keydown",
-      handleKeyDown,
-    );
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow =
-        previousOverflow;
+      document.body.style.overflow = previousOverflow;
 
-      window.removeEventListener(
-        "keydown",
-        handleKeyDown,
-      );
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [
-    order,
-    loadingAction,
-    onClose,
-  ]);
+  }, [order, loadingAction, onClose]);
 
   if (!order) return null;
+  
+  const status = order.status 
 
   const isPreparing =
-    order.status === "preparando" ||
-    order.status === "pendiente";
+    order.status === "preparando" || order.status === "pendiente";
 
-  const isDelivery =
-    order.entrega?.tipo === "domicilio";
+  const isDelivery = order.entrega?.tipo === "domicilio";
 
   const primaryActionLabel = isDelivery
     ? "Marcar en camino"
@@ -654,39 +535,26 @@ function OrderModal({
         aria-label="Cerrar detalle"
       />
 
-      <div className="relative flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-[2rem] bg-[var(--background)] shadow-2xl sm:max-w-4xl sm:rounded-[2rem]">
+      <div className="relative flex  max-h-[94vh] w-full flex-col overflow-hidden rounded-t-[2rem] bg-[var(--background)] shadow-2xl sm:max-w-md sm:rounded-2xl">
         <header className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--half-gray)] px-5 py-4 sm:px-6">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="truncate text-xl font-black text-[var(--foreground)]">
-                Pedido ·{" "}
-                {order.cliente?.nombre ||
-                  "Cliente"}
+                Pedido · {order.cliente?.nombre || "Cliente"}
               </h2>
 
-              <StatusBadge
-                status={order.status}
-              />
+              {/* <StatusBadge status={order.status} /> */}
             </div>
 
             <p className="mt-1 text-xs text-[var(--gray-color)]">
-              #
-              {getOrderNumber(
-                order.id,
-              )}{" "}
-              ·{" "}
-              {formatOrderDate(
-                order.creadoEn,
-              )}
+              #{getOrderNumber(order.id)} · {formatOrderDate(order.creadoEn)}
             </p>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            disabled={Boolean(
-              loadingAction,
-            )}
+            disabled={Boolean(loadingAction)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--light-gray)] text-[var(--foreground)] transition-colors hover:bg-[var(--foreground)] hover:text-white disabled:opacity-50"
             aria-label="Cerrar"
           >
@@ -702,56 +570,45 @@ function OrderModal({
               </p>
 
               <h3 className="mt-1 text-2xl font-black">
-                ¿Por qué quieres
-                cancelarlo?
+                ¿Por qué quieres cancelarlo?
               </h3>
 
               <p className="mt-2 text-sm text-[var(--gray-color)]">
-                Selecciona el motivo.
-                Este se guardará dentro
-                del pedido y se enviará
-                al cliente por WhatsApp.
+                Selecciona el motivo. Este se guardará dentro del pedido y se
+                enviará al cliente por WhatsApp.
               </p>
 
               <div className="mt-6 space-y-3">
-                {RAZONES_CANCELACION.map(
-                  (reason) => {
-                    const selected =
-                      cancellationReason ===
-                      reason;
+                {RAZONES_CANCELACION.map((reason) => {
+                  const selected = cancellationReason === reason;
 
-                    return (
-                      <button
-                        key={reason}
-                        type="button"
-                        onClick={() =>
-                          setCancellationReason(
-                            reason,
-                          )
-                        }
-                        className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left text-sm font-bold transition-all ${
+                  return (
+                    <button
+                      key={reason}
+                      type="button"
+                      onClick={() => setCancellationReason(reason)}
+                      className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left text-sm font-bold transition-all ${
+                        selected
+                          ? "border-[var(--red-text-color)] bg-[var(--red-color)] text-[var(--red-text-color)]"
+                          : "border-[var(--half-gray)] bg-[var(--background)] text-[var(--foreground)] hover:border-[var(--red-text-color)]"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
                           selected
-                            ? "border-[var(--red-text-color)] bg-[var(--red-color)] text-[var(--red-text-color)]"
-                            : "border-[var(--half-gray)] bg-[var(--background)] text-[var(--foreground)] hover:border-[var(--red-text-color)]"
+                            ? "border-[var(--red-text-color)]"
+                            : "border-[var(--half-gray)]"
                         }`}
                       >
-                        <span
-                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                            selected
-                              ? "border-[var(--red-text-color)]"
-                              : "border-[var(--half-gray)]"
-                          }`}
-                        >
-                          {selected && (
-                            <span className="h-2.5 w-2.5 rounded-full bg-[var(--red-text-color)]" />
-                          )}
-                        </span>
+                        {selected && (
+                          <span className="h-2.5 w-2.5 rounded-full bg-[var(--red-text-color)]" />
+                        )}
+                      </span>
 
-                        {reason}
-                      </button>
-                    );
-                  },
-                )}
+                      {reason}
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="mt-6 grid grid-cols-2 gap-3">
@@ -759,13 +616,9 @@ function OrderModal({
                   type="button"
                   onClick={() => {
                     setCancelMode(false);
-                    setCancellationReason(
-                      "",
-                    );
+                    setCancellationReason("");
                   }}
-                  disabled={Boolean(
-                    loadingAction,
-                  )}
+                  disabled={Boolean(loadingAction)}
                   className="rounded-xl bg-[var(--light-gray)] px-4 py-3 text-sm font-bold text-[var(--foreground)] disabled:opacity-60"
                 >
                   Volver
@@ -773,251 +626,143 @@ function OrderModal({
 
                 <button
                   type="button"
-                  disabled={
-                    !cancellationReason ||
-                    Boolean(loadingAction)
-                  }
-                  onClick={() =>
-                    onCancel(
-                      order,
-                      cancellationReason,
-                    )
-                  }
+                  disabled={!cancellationReason || Boolean(loadingAction)}
+                  onClick={() => onCancel(order, cancellationReason)}
                   className="rounded-xl bg-[var(--red-text-color)] px-4 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-50"
                 >
-                  {loadingAction ===
-                  "cancel"
-                    ? "Cancelando..."
-                    : "Confirmar"}
+                  {loadingAction === "cancel" ? "Cancelando..." : "Confirmar"}
                 </button>
               </div>
             </div>
           </div>
         ) : (
           <>
-            <div className="overflow-y-auto bg-[var(--light-gray)] p-4 sm:p-6">
-              <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+            <div className="overflow-y-auto bg-[var(--light-background)] p-4 sm:p-6">
+              <div className="grid gap-4 ">
                 <div className="space-y-4">
-                  <ModalSection
-                    eyebrow="Información"
-                    title="Cliente"
-                  >
-                    <InfoRow
-                      label="Nombre"
-                      value={
-                        order.cliente
-                          ?.nombre
-                      }
-                    />
+                  <ModalSection eyebrow="Información" title="Cliente">
+                    <InfoRow label="Nombre" value={order.cliente?.nombre} />
 
-                    <InfoRow
-                      label="Teléfono"
-                      value={
-                        order.cliente
-                          ?.telefono
-                      }
-                    />
+                    <InfoRow label="Teléfono" value={order.cliente?.telefono} />
 
                     <InfoRow
                       label="Hora"
-                      value={formatOrderDate(
-                        order.creadoEn,
-                      )}
+                      value={formatOrderDate(order.creadoEn)}
                     />
 
                     <InfoRow
                       label="Entrega"
                       value={
-                        isDelivery
-                          ? "Envío a domicilio"
-                          : "Recoge en local"
+                        isDelivery ? "Envío a domicilio" : "Recoge en local"
                       }
                     />
                   </ModalSection>
 
                   {isDelivery && (
-                    <ModalSection
-                      eyebrow="Entrega"
-                      title="Dirección"
-                    >
-                      <InfoRow
-                        label="Calle"
-                        value={
-                          order.entrega
-                            ?.calle
-                        }
-                      />
+                    <ModalSection eyebrow="Entrega" title="Dirección">
+                      <InfoRow label="Calle" value={order.entrega?.calle} />
 
-                      <InfoRow
-                        label="Número"
-                        value={
-                          order.entrega
-                            ?.numero
-                        }
-                      />
+                      <InfoRow label="Número" value={order.entrega?.numero} />
 
-                      <InfoRow
-                        label="Colonia"
-                        value={
-                          order.entrega
-                            ?.colonia
-                        }
-                      />
+                      <InfoRow label="Colonia" value={order.entrega?.colonia} />
 
                       <InfoRow
                         label="Código postal"
-                        value={
-                          order.entrega
-                            ?.postal
-                        }
+                        value={order.entrega?.postal}
                       />
                     </ModalSection>
                   )}
 
-                  <ModalSection
-                    eyebrow="Cobro"
-                    title="Pago"
-                  >
+                  <ModalSection eyebrow="Cobro" title="Pago">
                     <InfoRow
                       label="Método"
-                      value={getPaymentLabel(
-                        order.pago
-                          ?.metodo,
-                      )}
+                      value={getPaymentLabel(order.pago?.metodo)}
                     />
 
-                    {order.pago
-                      ?.metodo ===
-                      "efectivo" && (
+                    {order.pago?.metodo === "efectivo" && (
                       <>
                         <InfoRow
                           label="Paga con"
                           value={
-                            order.pago
-                              ?.pagaCon !==
-                              undefined
-                              ? formatCurrency(
-                                  order
-                                    .pago
-                                    .pagaCon,
-                                )
+                            order.pago?.pagaCon !== undefined
+                              ? formatCurrency(order.pago.pagaCon)
                               : "No especificado"
                           }
                         />
 
-                        {order.pago
-                          ?.cambio !==
-                          undefined && (
+                        {order.pago?.cambio !== undefined && (
                           <InfoRow
                             label="Cambio"
-                            value={formatCurrency(
-                              order
-                                .pago
-                                .cambio,
-                            )}
+                            value={formatCurrency(order.pago.cambio)}
                           />
                         )}
                       </>
                     )}
                   </ModalSection>
 
-                  {order.status ===
-                    "cancelado" && (
+                  {order.status === "cancelado" && (
                     <div className="rounded-2xl border border-[var(--red-text-color)] bg-[var(--red-color)] p-5">
                       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--red-text-color)]">
-                        Motivo de
-                        cancelación
+                        Motivo de cancelación
                       </p>
 
                       <p className="mt-2 text-sm font-bold text-[var(--red-text-color)]">
-                        {order.razonCancelacion ||
-                          "No especificado"}
+                        {order.razonCancelacion || "No especificado"}
                       </p>
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-4">
-                  <ModalSection
-                    eyebrow="Contenido"
-                    title="Productos"
-                  >
+                  <ModalSection eyebrow="Contenido" title="Productos">
                     <div className="space-y-3">
-                      {(order.items ||
-                        []).map(
-                        (
-                          item,
-                          index,
-                        ) => {
-                          const optionLines =
-                            getOptionLines(
-                              item.options,
-                            );
+                      {(order.items || []).map((item, index) => {
+                        const optionLines = getOptionLines(item.options);
 
-                          return (
-                            <div
-                              key={`${item.productId || item.name}-${index}`}
-                              className="flex gap-3 rounded-xl bg-[var(--light-gray)] p-4"
-                            >
-                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--light-accent)] text-sm font-black text-[var(--accent-color)]">
-                                {Number(
-                                  item.quantity,
-                                ) || 1}
-                              </div>
-
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-start justify-between gap-4">
-                                  <p className="font-black text-[var(--foreground)]">
-                                    {item.name ||
-                                      "Producto"}
-                                  </p>
-
-                                  {item.totalPrice !==
-                                    undefined && (
-                                    <p className="shrink-0 text-sm font-black text-[var(--foreground)]">
-                                      {formatCurrency(
-                                        item.totalPrice,
-                                      )}
-                                    </p>
-                                  )}
-                                </div>
-
-                                {optionLines.map(
-                                  (
-                                    line,
-                                    optionIndex,
-                                  ) => (
-                                    <p
-                                      key={`${line}-${optionIndex}`}
-                                      className="mt-1 text-xs leading-5 text-[var(--gray-color)]"
-                                    >
-                                      {
-                                        line
-                                      }
-                                    </p>
-                                  ),
-                                )}
-
-                                {item.note && (
-                                  <p className="mt-2 rounded-lg bg-[var(--light-accent)] px-3 py-2 text-xs font-bold text-[var(--accent-color)]">
-                                    Nota:{" "}
-                                    {
-                                      item.note
-                                    }
-                                  </p>
-                                )}
-                              </div>
+                        return (
+                          <div
+                            key={`${item.productId || item.name}-${index}`}
+                            className="flex gap-3 rounded-xl bg-[var(--light-gray)] p-4"
+                          >
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--light-accent)] text-sm font-black text-[var(--accent-color)]">
+                              {Number(item.quantity) || 1}
                             </div>
-                          );
-                        },
-                      )}
 
-                      {(order.items || [])
-                        .length === 0 && (
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-4">
+                                <p className="font-black text-[var(--foreground)]">
+                                  {item.name || "Producto"}
+                                </p>
+
+                                {item.totalPrice !== undefined && (
+                                  <p className="shrink-0 text-sm font-black text-[var(--foreground)]">
+                                    {formatCurrency(item.totalPrice)}
+                                  </p>
+                                )}
+                              </div>
+
+                              {optionLines.map((line, optionIndex) => (
+                                <p
+                                  key={`${line}-${optionIndex}`}
+                                  className="mt-1 text-xs leading-5 text-[var(--gray-color)]"
+                                >
+                                  {line}
+                                </p>
+                              ))}
+
+                              {item.note && (
+                                <p className="mt-2 rounded-lg bg-[var(--light-accent)] px-3 py-2 text-xs font-bold text-[var(--accent-color)]">
+                                  Nota: {item.note}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {(order.items || []).length === 0 && (
                         <p className="py-6 text-center text-sm text-[var(--gray-color)]">
-                          No hay productos
-                          registrados en este
-                          pedido.
+                          No hay productos registrados en este pedido.
                         </p>
                       )}
                     </div>
@@ -1025,19 +770,11 @@ function OrderModal({
 
                   <section className="rounded-2xl bg-[var(--foreground)] p-5 text-white">
                     <div className="space-y-3">
-                      {Number(
-                        order.costoEnvio,
-                      ) > 0 && (
+                      {Number(order.costoEnvio) > 0 && (
                         <div className="flex items-center justify-between text-sm text-white/65">
-                          <span>
-                            Envío
-                          </span>
+                          <span>Envío</span>
 
-                          <span>
-                            {formatCurrency(
-                              order.costoEnvio,
-                            )}
-                          </span>
+                          <span>{formatCurrency(order.costoEnvio)}</span>
                         </div>
                       )}
 
@@ -1048,21 +785,15 @@ function OrderModal({
                           </p>
 
                           <p className="mt-1 text-sm text-white/60">
-                            {getItemCount(
-                              order,
-                            )}{" "}
-                            {getItemCount(
-                              order,
-                            ) === 1
+                            {getItemCount(order)}{" "}
+                            {getItemCount(order) === 1
                               ? "producto"
                               : "productos"}
                           </p>
                         </div>
 
                         <p className="text-3xl font-black text-[var(--light-accent)]">
-                          {formatCurrency(
-                            order.total,
-                          )}
+                          {formatCurrency(order.total)}
                         </p>
                       </div>
                     </div>
@@ -1071,34 +802,25 @@ function OrderModal({
               </div>
             </div>
 
-            <footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-[var(--half-gray)] bg-[var(--background)] p-4 sm:flex-row sm:items-center sm:justify-end sm:px-6">
+            <footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-[var(--half-gray)] bg-[var(--background)] p-4  sm:items-center sm:justify-end sm:px-6">
               {isPreparing ? (
                 <>
                   <button
                     type="button"
-                    disabled={Boolean(
-                      loadingAction,
-                    )}
-                    onClick={() =>
-                      setCancelMode(true)
-                    }
-                    className="rounded-xl border border-[var(--red-text-color)] bg-[var(--background)] px-5 py-3 text-sm font-bold text-[var(--red-text-color)] transition-all hover:bg-[var(--red-color)] disabled:pointer-events-none disabled:opacity-50"
+                    disabled={Boolean(loadingAction)}
+                    onClick={() => setCancelMode(true)}
+                    className="h-[46px] rounded-xl w-full border border-[var(--red-text-color)] bg-[var(--background)] px-5 py-3 text-sm font-bold text-[var(--red-text-color)] transition-all hover:bg-[var(--red-color)] disabled:pointer-events-none disabled:opacity-50"
                   >
                     Cancelar pedido
                   </button>
 
                   <button
                     type="button"
-                    disabled={Boolean(
-                      loadingAction,
-                    )}
-                    onClick={() =>
-                      onAdvance(order)
-                    }
-                    className="rounded-xl bg-[var(--accent-color)] px-5 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(237,64,11,0.24)] disabled:pointer-events-none disabled:opacity-50"
+                    disabled={Boolean(loadingAction)}
+                    onClick={() => onAdvance(order)}
+                    className="h-[46px] rounded-xl w-full bg-[var(--accent-color)] px-5 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(237,64,11,0.24)] disabled:pointer-events-none disabled:opacity-50"
                   >
-                    {loadingAction ===
-                    "advance"
+                    {loadingAction === "advance"
                       ? "Guardando..."
                       : primaryActionLabel}
                   </button>
@@ -1120,9 +842,7 @@ function OrderModal({
   );
 }
 
-function EmptyOrders({
-  search,
-}) {
+function EmptyOrders({ search }) {
   return (
     <div className="rounded-[2rem] border border-dashed border-[var(--half-gray)] bg-[var(--background)] px-6 py-16 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--light-accent)] text-2xl font-black text-[var(--accent-color)]">
@@ -1130,9 +850,7 @@ function EmptyOrders({
       </div>
 
       <h3 className="mt-4 text-xl font-black text-[var(--foreground)]">
-        {search
-          ? "No encontramos pedidos"
-          : "No hay pedidos por el momento"}
+        {search ? "No encontramos pedidos" : "No hay pedidos por el momento"}
       </h3>
 
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--gray-color)]">
@@ -1144,55 +862,31 @@ function EmptyOrders({
   );
 }
 
-export default function OrdersPanel({
-  restaurantId,
-}) {
-  const [orders, setOrders] =
-    useState([]);
+export default function OrdersPanel({ restaurantId }) {
+  const [orders, setOrders] = useState([]);
 
-  const [
-    selectedOrderId,
-    setSelectedOrderId,
-  ] = useState(null);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
 
-  const [filter, setFilter] =
-    useState("todos");
+  const [filter, setFilter] = useState("todos");
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [loadError, setLoadError] =
-    useState("");
+  const [loadError, setLoadError] = useState("");
 
-  const [
-    loadingAction,
-    setLoadingAction,
-  ] = useState("");
+  const [loadingAction, setLoadingAction] = useState("");
 
-  const [toast, setToast] =
-    useState(null);
+  const [toast, setToast] = useState(null);
 
-  const [
-    alertsEnabled,
-    setAlertsEnabled,
-  ] = useState(false);
+  const [alertsEnabled, setAlertsEnabled] = useState(false);
 
-  const knownOrderIdsRef =
-    useRef(null);
+  const knownOrderIdsRef = useRef(null);
 
-  const audioContextRef =
-    useRef(null);
+  const audioContextRef = useRef(null);
 
   const selectedOrder = useMemo(
-    () =>
-      orders.find(
-        (order) =>
-          order.id ===
-          selectedOrderId,
-      ) || null,
+    () => orders.find((order) => order.id === selectedOrderId) || null,
     [orders, selectedOrderId],
   );
 
@@ -1200,10 +894,7 @@ export default function OrdersPanel({
     () =>
       orders.filter(
         (order) =>
-          order.status ===
-            "preparando" ||
-          order.status ===
-            "pendiente",
+          order.status === "preparando" || order.status === "pendiente",
       ),
     [orders],
   );
@@ -1211,31 +902,18 @@ export default function OrdersPanel({
   const readyOrders = useMemo(
     () =>
       orders.filter(
-        (order) =>
-          order.status === "listo" ||
-          order.status ===
-            "en_camino",
+        (order) => order.status === "listo" || order.status === "en_camino",
       ),
     [orders],
   );
 
   const deliveredOrders = useMemo(
-    () =>
-      orders.filter(
-        (order) =>
-          order.status ===
-          "entregado",
-      ),
+    () => orders.filter((order) => order.status === "entregado"),
     [orders],
   );
 
   const cancelledOrders = useMemo(
-    () =>
-      orders.filter(
-        (order) =>
-          order.status ===
-          "cancelado",
-      ),
+    () => orders.filter((order) => order.status === "cancelado"),
     [orders],
   );
 
@@ -1243,59 +921,30 @@ export default function OrdersPanel({
     const today = new Date();
 
     return orders.filter((order) => {
-      const date = timestampToDate(
-        order.creadoEn,
-      );
+      const date = timestampToDate(order.creadoEn);
 
-      return (
-        date &&
-        sameDay(date, today)
-      );
+      return date && sameDay(date, today);
     });
   }, [orders]);
 
   const todaySales = useMemo(
     () =>
       todayOrders
-        .filter(
-          (order) =>
-            order.status !==
-            "cancelado",
-        )
-        .reduce(
-          (total, order) =>
-            total +
-            (Number(order.total) ||
-              0),
-          0,
-        ),
+        .filter((order) => order.status !== "cancelado")
+        .reduce((total, order) => total + (Number(order.total) || 0), 0),
     [todayOrders],
   );
 
   const filteredOrders = useMemo(() => {
-    const normalizedSearch = search
-      .trim()
-      .toLowerCase();
+    const normalizedSearch = search.trim().toLowerCase();
 
     return orders.filter((order) => {
       const matchesFilter = {
         todos: true,
-        activos:
-          order.status ===
-            "preparando" ||
-          order.status ===
-            "pendiente",
-        listos:
-          order.status ===
-            "listo" ||
-          order.status ===
-            "en_camino",
-        entregados:
-          order.status ===
-          "entregado",
-        cancelados:
-          order.status ===
-          "cancelado",
+        activos: order.status === "preparando" || order.status === "pendiente",
+        listos: order.status === "listo" || order.status === "en_camino",
+        entregados: order.status === "entregado",
+        cancelados: order.status === "cancelado",
       }[filter];
 
       if (!matchesFilter) {
@@ -1316,9 +965,7 @@ export default function OrdersPanel({
         .join(" ")
         .toLowerCase();
 
-      return searchableText.includes(
-        normalizedSearch,
-      );
+      return searchableText.includes(normalizedSearch);
     });
   }, [orders, filter, search]);
 
@@ -1327,35 +974,25 @@ export default function OrdersPanel({
       {
         key: "active",
         title: "En curso",
-        description:
-          "Pedidos que se están preparando.",
-        statuses: [
-          "pendiente",
-          "preparando",
-        ],
+        description: "Pedidos que se están preparando.",
+        statuses: ["pendiente", "preparando"],
       },
       {
         key: "ready",
         title: "Listos",
-        description:
-          "Pedidos listos para recoger o en proceso de entrega.",
-        statuses: [
-          "listo",
-          "en_camino",
-        ],
+        description: "Pedidos listos para recoger o en proceso de entrega.",
+        statuses: ["listo", "en_camino"],
       },
       {
         key: "delivered",
         title: "Entregados",
-        description:
-          "Pedidos finalizados correctamente.",
+        description: "Pedidos finalizados correctamente.",
         statuses: ["entregado"],
       },
       {
         key: "cancelled",
         title: "Cancelados",
-        description:
-          "Pedidos que no pudieron completarse.",
+        description: "Pedidos que no pudieron completarse.",
         statuses: ["cancelado"],
       },
     ];
@@ -1363,23 +1000,14 @@ export default function OrdersPanel({
     return groups
       .map((group) => ({
         ...group,
-        orders: filteredOrders.filter(
-          (order) =>
-            group.statuses.includes(
-              order.status,
-            ),
+        orders: filteredOrders.filter((order) =>
+          group.statuses.includes(order.status),
         ),
       }))
-      .filter(
-        (group) =>
-          group.orders.length > 0,
-      );
+      .filter((group) => group.orders.length > 0);
   }, [filteredOrders]);
 
-  function showToast(
-    message,
-    tone = "success",
-  ) {
+  function showToast(message, tone = "success") {
     setToast({
       message,
       tone,
@@ -1393,34 +1021,23 @@ export default function OrdersPanel({
   async function enableAlerts() {
     try {
       const AudioContextClass =
-        window.AudioContext ||
-        window.webkitAudioContext;
+        window.AudioContext || window.webkitAudioContext;
 
       if (AudioContextClass) {
         if (!audioContextRef.current) {
-          audioContextRef.current =
-            new AudioContextClass();
+          audioContextRef.current = new AudioContextClass();
         }
 
-        if (
-          audioContextRef.current
-            .state === "suspended"
-        ) {
+        if (audioContextRef.current.state === "suspended") {
           await audioContextRef.current.resume();
         }
       }
 
-      if (
-        "Notification" in window
-      ) {
-        const permission =
-          await Notification.requestPermission();
+      if ("Notification" in window) {
+        const permission = await Notification.requestPermission();
 
         if (permission === "denied") {
-          showToast(
-            "El navegador bloqueó las notificaciones.",
-            "error",
-          );
+          showToast("El navegador bloqueó las notificaciones.", "error");
 
           return;
         }
@@ -1428,115 +1045,62 @@ export default function OrdersPanel({
 
       setAlertsEnabled(true);
 
-      showToast(
-        "Alertas de pedidos activadas.",
-      );
+      showToast("Alertas de pedidos activadas.");
     } catch (error) {
       console.error(error);
 
-      showToast(
-        "No se pudieron activar las alertas.",
-        "error",
-      );
+      showToast("No se pudieron activar las alertas.", "error");
     }
   }
 
   function playNewOrderAlert(order) {
     try {
-      const context =
-        audioContextRef.current;
+      const context = audioContextRef.current;
 
-      if (
-        context &&
-        context.state === "running"
-      ) {
-        const playTone = (
-          frequency,
-          start,
-          duration,
-        ) => {
-          const oscillator =
-            context.createOscillator();
+      if (context && context.state === "running") {
+        const playTone = (frequency, start, duration) => {
+          const oscillator = context.createOscillator();
 
-          const gain =
-            context.createGain();
+          const gain = context.createGain();
 
           oscillator.type = "sine";
-          oscillator.frequency.value =
-            frequency;
+          oscillator.frequency.value = frequency;
 
-          gain.gain.setValueAtTime(
-            0,
-            start,
-          );
+          gain.gain.setValueAtTime(0, start);
 
-          gain.gain.linearRampToValueAtTime(
-            0.18,
-            start + 0.02,
-          );
+          gain.gain.linearRampToValueAtTime(0.18, start + 0.02);
 
-          gain.gain.exponentialRampToValueAtTime(
-            0.001,
-            start + duration,
-          );
+          gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
 
           oscillator.connect(gain);
-          gain.connect(
-            context.destination,
-          );
+          gain.connect(context.destination);
 
           oscillator.start(start);
-          oscillator.stop(
-            start + duration,
-          );
+          oscillator.stop(start + duration);
         };
 
-        const now =
-          context.currentTime;
+        const now = context.currentTime;
 
-        playTone(
-          880,
-          now,
-          0.2,
-        );
+        playTone(880, now, 0.2);
 
-        playTone(
-          1175,
-          now + 0.2,
-          0.3,
-        );
+        playTone(1175, now + 0.2, 0.3);
       }
 
-      if (
-        "Notification" in window &&
-        Notification.permission ===
-          "granted"
-      ) {
-        new Notification(
-          "Nuevo pedido en Platillo",
-          {
-            body: `${order.cliente?.nombre || "Cliente"} · ${formatCurrency(order.total)}`,
-            icon: "/logo.png",
-          },
-        );
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Nuevo pedido en Platillo", {
+          body: `${order.cliente?.nombre || "Cliente"} · ${formatCurrency(order.total)}`,
+          icon: "/logo.png",
+        });
       }
     } catch (error) {
-      console.error(
-        "No se pudo reproducir la alerta:",
-        error,
-      );
+      console.error("No se pudo reproducir la alerta:", error);
     }
   }
 
   useEffect(() => {
-    if (
-      typeof window !==
-      "undefined"
-    ) {
+    if (typeof window !== "undefined") {
       setAlertsEnabled(
-        "Notification" in window &&
-          Notification.permission ===
-            "granted",
+        "Notification" in window && Notification.permission === "granted",
       );
     }
   }, []);
@@ -1549,81 +1113,43 @@ export default function OrdersPanel({
 
     const ordersQuery = query(
       collection(db, "orders"),
-      where(
-        "restaurantId",
-        "==",
-        restaurantId,
-      ),
-      orderBy(
-        "creadoEn",
-        "desc",
-      ),
+      where("restaurantId", "==", restaurantId),
+      orderBy("creadoEn", "desc"),
     );
 
     const unsubscribe = onSnapshot(
       ordersQuery,
       (snapshot) => {
-        const data = snapshot.docs.map(
-          (orderDocument) => ({
-            id: orderDocument.id,
-            ...orderDocument.data(),
-          }),
-        );
+        const data = snapshot.docs.map((orderDocument) => ({
+          id: orderDocument.id,
+          ...orderDocument.data(),
+        }));
 
-        if (
-          knownOrderIdsRef.current ===
-          null
-        ) {
-          knownOrderIdsRef.current =
-            new Set(
-              data.map(
-                (order) => order.id,
-              ),
-            );
+        if (knownOrderIdsRef.current === null) {
+          knownOrderIdsRef.current = new Set(data.map((order) => order.id));
         } else {
           const newOrders = data.filter(
-            (order) =>
-              !knownOrderIdsRef.current.has(
-                order.id,
-              ),
+            (order) => !knownOrderIdsRef.current.has(order.id),
           );
 
-          if (
-            newOrders.length > 0
-          ) {
-            playNewOrderAlert(
-              newOrders[0],
-            );
+          if (newOrders.length > 0) {
+            playNewOrderAlert(newOrders[0]);
 
             showToast(
-              `Nuevo pedido de ${
-                newOrders[0].cliente
-                  ?.nombre ||
-                "un cliente"
-              }`,
+              `Nuevo pedido de ${newOrders[0].cliente?.nombre || "un cliente"}`,
             );
           }
 
-          knownOrderIdsRef.current =
-            new Set(
-              data.map(
-                (order) => order.id,
-              ),
-            );
+          knownOrderIdsRef.current = new Set(data.map((order) => order.id));
         }
 
         setOrders(data);
         setLoading(false);
       },
       (error) => {
-        console.error(
-          "Error obteniendo pedidos:",
-          error,
-        );
+        console.error("Error obteniendo pedidos:", error);
 
-        setLoadError(
-          "No se pudieron cargar los pedidos.",
-        );
+        setLoadError("No se pudieron cargar los pedidos.");
 
         setLoading(false);
       },
@@ -1632,37 +1158,24 @@ export default function OrdersPanel({
     return () => unsubscribe();
   }, [restaurantId]);
 
-  async function sendWhatsApp(
-    endpoint,
-    body,
-  ) {
-    const firebaseUser =
-      await getFirebaseUser();
+  async function sendWhatsApp(endpoint, body) {
+    const firebaseUser = await getFirebaseUser();
 
-    const token =
-      await firebaseUser.getIdToken();
+    const token = await firebaseUser.getIdToken();
 
-    const response = await fetch(
-      `/api/whatsapp/${endpoint}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
+    const response = await fetch(`/api/whatsapp/${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-    );
+      body: JSON.stringify(body),
+    });
 
-    const responseText =
-      await response.text();
+    const responseText = await response.text();
 
     if (!response.ok) {
-      throw new Error(
-        responseText ||
-          "No se pudo enviar WhatsApp.",
-      );
+      throw new Error(responseText || "No se pudo enviar WhatsApp.");
     }
 
     return responseText;
@@ -1674,32 +1187,20 @@ export default function OrdersPanel({
     setLoadingAction("advance");
 
     try {
-      const isDelivery =
-        order.entrega?.tipo ===
-        "domicilio";
+      const isDelivery = order.entrega?.tipo === "domicilio";
 
-      const newStatus = isDelivery
-        ? "en_camino"
-        : "listo";
+      const newStatus = isDelivery ? "en_camino" : "listo";
 
-      const endpoint = isDelivery
-        ? "pedido-en-camino"
-        : "pedido-listo";
+      const endpoint = isDelivery ? "pedido-en-camino" : "pedido-listo";
 
-      await updateDoc(
-        doc(db, "orders", order.id),
-        {
-          status: newStatus,
-        },
-      );
+      await updateDoc(doc(db, "orders", order.id), {
+        status: newStatus,
+      });
 
       try {
-        await sendWhatsApp(
-          endpoint,
-          {
-            orderId: order.id,
-          },
-        );
+        await sendWhatsApp(endpoint, {
+          orderId: order.id,
+        });
 
         showToast(
           isDelivery
@@ -1707,10 +1208,7 @@ export default function OrdersPanel({
             : "Pedido marcado como listo y cliente notificado.",
         );
       } catch (whatsappError) {
-        console.error(
-          "Error enviando WhatsApp:",
-          whatsappError,
-        );
+        console.error("Error enviando WhatsApp:", whatsappError);
 
         showToast(
           "El estado cambió, pero no se pudo enviar el mensaje de WhatsApp.",
@@ -1720,55 +1218,34 @@ export default function OrdersPanel({
 
       setSelectedOrderId(null);
     } catch (error) {
-      console.error(
-        "Error actualizando pedido:",
-        error,
-      );
+      console.error("Error actualizando pedido:", error);
 
-      showToast(
-        "No se pudo actualizar el pedido.",
-        "error",
-      );
+      showToast("No se pudo actualizar el pedido.", "error");
     } finally {
       setLoadingAction("");
     }
   }
 
-  async function cancelOrder(
-    order,
-    reason,
-  ) {
+  async function cancelOrder(order, reason) {
     if (loadingAction) return;
 
     setLoadingAction("cancel");
 
     try {
-      await updateDoc(
-        doc(db, "orders", order.id),
-        {
-          status: "cancelado",
-          razonCancelacion: reason,
-        },
-      );
+      await updateDoc(doc(db, "orders", order.id), {
+        status: "cancelado",
+        razonCancelacion: reason,
+      });
 
       try {
-        await sendWhatsApp(
-          "pedido-cancelado",
-          {
-            orderId: order.id,
-            razonCancelacion:
-              reason,
-          },
-        );
+        await sendWhatsApp("pedido-cancelado", {
+          orderId: order.id,
+          razonCancelacion: reason,
+        });
 
-        showToast(
-          "Pedido cancelado y cliente notificado.",
-        );
+        showToast("Pedido cancelado y cliente notificado.");
       } catch (whatsappError) {
-        console.error(
-          "Error enviando WhatsApp:",
-          whatsappError,
-        );
+        console.error("Error enviando WhatsApp:", whatsappError);
 
         showToast(
           "El pedido se canceló, pero no se pudo enviar el mensaje de WhatsApp.",
@@ -1778,15 +1255,9 @@ export default function OrdersPanel({
 
       setSelectedOrderId(null);
     } catch (error) {
-      console.error(
-        "Error cancelando pedido:",
-        error,
-      );
+      console.error("Error cancelando pedido:", error);
 
-      showToast(
-        "No se pudo cancelar el pedido.",
-        "error",
-      );
+      showToast("No se pudo cancelar el pedido.", "error");
     } finally {
       setLoadingAction("");
     }
@@ -1805,9 +1276,7 @@ export default function OrdersPanel({
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--gray-color)]">
-            Recibe y administra los
-            pedidos de tu restaurante
-            en tiempo real.
+            Recibe y administra los pedidos de tu restaurante en tiempo real.
           </p>
         </div>
 
@@ -1822,18 +1291,14 @@ export default function OrdersPanel({
         >
           <BellIcon className="h-4 w-4" />
 
-          {alertsEnabled
-            ? "Alertas activas"
-            : "Activar alertas"}
+          {alertsEnabled ? "Alertas activas" : "Activar alertas"}
         </button>
       </header>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           label="En curso"
-          value={
-            preparingOrders.length
-          }
+          value={preparingOrders.length}
           description="Pedidos preparándose"
           tone="accent"
         />
@@ -1853,15 +1318,13 @@ export default function OrdersPanel({
 
         <SummaryCard
           label="Venta de hoy"
-          value={formatCurrency(
-            todaySales,
-          )}
+          value={formatCurrency(todaySales)}
           description="Sin pedidos cancelados"
           tone="accent"
         />
       </section>
 
-      <section className="rounded-2xl border border-[var(--half-gray)] bg-[var(--background)] p-4">
+      <section className="rounded-2xl  shadow-[0_1px_2px_rgba(0,0,0,0.1)] bg-[var(--background)] p-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="relative w-full xl:max-w-md">
             <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--gray-color)]" />
@@ -1869,30 +1332,21 @@ export default function OrdersPanel({
             <input
               type="search"
               value={search}
-              onChange={(event) =>
-                setSearch(
-                  event.target.value,
-                )
-              }
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por cliente, teléfono o pedido"
-              className="h-11 w-full rounded-xl border border-[var(--half-gray)] bg-[var(--background)] pl-10 pr-4 text-sm text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--gray-color)] focus:border-[var(--accent-color)]"
+              className="h-11 w-full rounded-xl border border-[var(--half-gray)] bg-[var(--light-background)] pl-10 pr-4 text-sm text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--gray-color)] "
             />
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-1 xl:pb-0">
             {FILTERS.map((item) => {
-              const active =
-                filter === item.value;
+              const active = filter === item.value;
 
               return (
                 <button
                   key={item.value}
                   type="button"
-                  onClick={() =>
-                    setFilter(
-                      item.value,
-                    )
-                  }
+                  onClick={() => setFilter(item.value)}
                   className={`shrink-0 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-colors ${
                     active
                       ? "bg-[var(--accent-color)] text-white"
@@ -1924,70 +1378,49 @@ export default function OrdersPanel({
             />
           ))}
         </div>
-      ) : groupedOrders.length ===
-        0 ? (
-        <EmptyOrders
-          search={search}
-        />
+      ) : groupedOrders.length === 0 ? (
+        <EmptyOrders search={search} />
       ) : (
         <div className="space-y-8">
-          {groupedOrders.map(
-            (group) => (
-              <section
-                key={group.key}
-              >
-                <div className="mb-4 flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent-color)]">
-                      {group.orders
-                        .length}{" "}
-                      {group.orders
-                        .length === 1
-                        ? "pedido"
-                        : "pedidos"}
-                    </p>
+          {groupedOrders.map((group) => (
+            <section key={group.key}>
+              <div className="mb-4 flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent-color)]">
+                    {group.orders.length}{" "}
+                    {group.orders.length === 1 ? "pedido" : "pedidos"}
+                  </p>
 
-                    <h2 className="mt-1 text-xl font-black tracking-tight text-[var(--foreground)]">
-                      {group.title}
-                    </h2>
+                  <h2 className="mt-1 text-xl font-black tracking-tight text-[var(--foreground)]">
+                    {group.title}
+                  </h2>
 
-                    <p className="mt-1 text-xs text-[var(--gray-color)]">
-                      {
-                        group.description
-                      }
-                    </p>
-                  </div>
+                  <p className="mt-1 text-xs text-[var(--gray-color)]">
+                    {group.description}
+                  </p>
                 </div>
+              </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {group.orders.map(
-                    (order) => (
-                      <OrderCard
-                        key={order.id}
-                        order={order}
-                        onOpen={
-                          setSelectedOrderId
-                        }
-                      />
-                    ),
-                  )}
-                </div>
-              </section>
-            ),
-          )}
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {group.orders.map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    onOpen={setSelectedOrderId}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
       )}
 
       <OrderModal
         order={selectedOrder}
-        loadingAction={
-          loadingAction
-        }
+        loadingAction={loadingAction}
         onClose={() => {
           if (!loadingAction) {
-            setSelectedOrderId(
-              null,
-            );
+            setSelectedOrderId(null);
           }
         }}
         onAdvance={advanceOrder}
@@ -1999,8 +1432,7 @@ export default function OrdersPanel({
           className={`fixed bottom-5 right-5 z-[150] max-w-sm rounded-2xl border px-4 py-3 text-sm font-bold shadow-2xl ${
             toast.tone === "error"
               ? "border-[var(--red-text-color)] bg-[var(--red-color)] text-[var(--red-text-color)]"
-              : toast.tone ===
-                  "warning"
+              : toast.tone === "warning"
                 ? "border-[var(--accent-color)] bg-[var(--light-accent)] text-[var(--accent-color)]"
                 : "border-[var(--green-text-color)] bg-[var(--green-color)] text-[var(--green-text-color)]"
           }`}
