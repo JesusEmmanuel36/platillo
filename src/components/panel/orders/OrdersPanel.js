@@ -477,7 +477,7 @@ function ModalSection({ eyebrow, title, children }) {
   );
 }
 
-function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel }) {
+function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel, onAccept }) {
   const [cancelMode, setCancelMode] = useState(false);
 
   const [cancellationReason, setCancellationReason] = useState("");
@@ -818,7 +818,7 @@ function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel }) {
                   <button
                     type="button"
                     disabled={Boolean(loadingAction)}
-                    onClick={() => onAdvance(order)}
+                    onClick={() => onAccept(order)}
                     className="h-[46px] rounded-xl w-full bg-[var(--accent-color)] px-5 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(237,64,11,0.24)] disabled:pointer-events-none disabled:opacity-50"
                   >
                     Aceptar pedido
@@ -1185,14 +1185,17 @@ export default function OrdersPanel({ restaurantId }) {
 
     const token = await firebaseUser.getIdToken();
 
-    const response = await fetch(`https://platillo.mx/api/whatsapp/${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+    const response = await fetch(
+      `https://platillo.mx/api/whatsapp/${endpoint}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    });
+    );
 
     const responseText = await response.text();
 
@@ -1237,6 +1240,30 @@ export default function OrdersPanel({ restaurantId }) {
           "warning",
         );
       }
+
+      setSelectedOrderId(null);
+    } catch (error) {
+      console.error("Error actualizando pedido:", error);
+
+      showToast("No se pudo actualizar el pedido.", "error");
+    } finally {
+      setLoadingAction("");
+    }
+  }
+
+  async function acceptOrder(order) {
+    if (loadingAction) return;
+
+    setLoadingAction("accept");
+
+    try {
+      const newStatus = "preparando";
+
+      await updateDoc(doc(db, "orders", order.id), {
+        status: newStatus,
+      });
+
+      showToast("Pedido marcado como preparando y cliente notificado.");
 
       setSelectedOrderId(null);
     } catch (error) {
@@ -1447,6 +1474,7 @@ export default function OrdersPanel({ restaurantId }) {
         }}
         onAdvance={advanceOrder}
         onCancel={cancelOrder}
+        onAccept={acceptOrder}
       />
 
       {toast && (
