@@ -14,9 +14,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 
 const STATUS_CONFIG = {
-  pendiente: {
-    label: "Nuevo",
-    classes: "bg-[var(--light-accent)] text-[var(--accent-color)]",
+  procesando: {
+    label: "Procesando",
+    classes: "bg-[var(--light-gray)] text-[var(--gray-color)]",
   },
   preparando: {
     label: "Preparando",
@@ -387,6 +387,7 @@ function SummaryCard({ label, value, description, tone = "neutral" }) {
 
 function OrderCard({ order, onOpen }) {
   const isDelivery = order.entrega?.tipo === "domicilio";
+  const isPending = order.status === "procesando";
 
   return (
     <button type="button" onClick={() => onOpen(order.id)}>
@@ -479,8 +480,7 @@ function ModalSection({ eyebrow, title, children }) {
 function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel }) {
   const [cancelMode, setCancelMode] = useState(false);
 
-  const [cancellationReason, setCancellationReason] = useState("")
-  
+  const [cancellationReason, setCancellationReason] = useState("");
 
   useEffect(() => {
     setCancelMode(false);
@@ -510,13 +510,14 @@ function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel }) {
   }, [order, loadingAction, onClose]);
 
   if (!order) return null;
-  
-  const status = order.status 
+
+  const status = order.status;
 
   const isPreparing =
     order.status === "preparando" || order.status === "pendiente";
 
   const isDelivery = order.entrega?.tipo === "domicilio";
+  const isPending = order.status === "procesando";
 
   const primaryActionLabel = isDelivery
     ? "Marcar en camino"
@@ -569,7 +570,7 @@ function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel }) {
                 Cancelar pedido
               </p>
 
-              <h3 className="mt-1 text-2xl font-black">
+              <h3 className="mt-1 text-xl font-black">
                 ¿Por qué quieres cancelarlo?
               </h3>
 
@@ -803,7 +804,29 @@ function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel }) {
             </div>
 
             <footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-[var(--half-gray)] bg-[var(--background)] p-4  sm:items-center sm:justify-end sm:px-6">
-              {isPreparing ? (
+              {isPending && (
+                <>
+                  <button
+                    type="button"
+                    disabled={Boolean(loadingAction)}
+                    onClick={() => setCancelMode(true)}
+                    className="h-[46px] rounded-xl w-full border border-[var(--red-text-color)] bg-[var(--background)] px-5 py-3 text-sm font-bold text-[var(--red-text-color)] transition-all hover:bg-[var(--red-color)] disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    Rechazar pedido
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={Boolean(loadingAction)}
+                    onClick={() => onAdvance(order)}
+                    className="h-[46px] rounded-xl w-full bg-[var(--accent-color)] px-5 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(237,64,11,0.24)] disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    Aceptar pedido
+                  </button>
+                </>
+              )}
+
+              {isPreparing && (
                 <>
                   <button
                     type="button"
@@ -825,14 +848,6 @@ function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel }) {
                       : primaryActionLabel}
                   </button>
                 </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-xl bg-[var(--foreground)] px-5 py-3 text-sm font-bold text-white"
-                >
-                  Cerrar
-                </button>
               )}
             </footer>
           </>
@@ -890,11 +905,11 @@ export default function OrdersPanel({ restaurantId }) {
     [orders, selectedOrderId],
   );
 
-  const preparingOrders = useMemo(
+  const pendentOrders = useMemo(
     () =>
       orders.filter(
         (order) =>
-          order.status === "preparando" || order.status === "pendiente",
+          order.status === "preparando" || order.status === "procesando",
       ),
     [orders],
   );
@@ -941,6 +956,7 @@ export default function OrdersPanel({ restaurantId }) {
     return orders.filter((order) => {
       const matchesFilter = {
         todos: true,
+        procesando: order.status === "procesando",
         activos: order.status === "preparando" || order.status === "pendiente",
         listos: order.status === "listo" || order.status === "en_camino",
         entregados: order.status === "entregado",
@@ -971,6 +987,12 @@ export default function OrdersPanel({ restaurantId }) {
 
   const groupedOrders = useMemo(() => {
     const groups = [
+      {
+        key: "pending",
+        title: "Procesando",
+        description: "Pedidos que aún no se han aceptado o cancelado.",
+        statuses: ["procesando"],
+      },
       {
         key: "active",
         title: "En curso",
@@ -1298,8 +1320,8 @@ export default function OrdersPanel({ restaurantId }) {
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           label="En curso"
-          value={preparingOrders.length}
-          description="Pedidos preparándose"
+          value={pendentOrders.length}
+          description="Pedidos pendientes"
           tone="accent"
         />
 
