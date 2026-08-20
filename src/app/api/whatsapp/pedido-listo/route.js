@@ -1,6 +1,12 @@
 import { adminAuth, db } from "@/lib/firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "https://panel.platillo.mx",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 async function registrarWhatsappEnviado(restaurantRef) {
   await restaurantRef.update({
     "whatsappStats.sentThisMonth": FieldValue.increment(1),
@@ -24,6 +30,14 @@ async function registrarWhatsappFallido(restaurantRef, restaurant) {
   await restaurantRef.update(updates);
 }
 
+// Preflight CORS
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
+
 export async function POST(req) {
   let restaurantRefParaStats = null;
   let restaurantParaStats = null;
@@ -33,7 +47,13 @@ export async function POST(req) {
     const authHeader = req.headers.get("authorization");
 
     if (!authHeader?.startsWith("Bearer ")) {
-      return Response.json({ error: "No autorizado" }, { status: 401 });
+      return Response.json(
+        { error: "No autorizado" },
+        {
+          status: 401,
+          headers: corsHeaders,
+        },
+      );
     }
 
     const idToken = authHeader.split("Bearer ")[1];
@@ -44,25 +64,43 @@ export async function POST(req) {
     const { orderId } = await req.json();
 
     if (!orderId) {
-      return Response.json({ error: "Falta orderId" }, { status: 400 });
+      return Response.json(
+        { error: "Falta orderId" },
+        {
+          status: 400,
+          headers: corsHeaders,
+        },
+      );
     }
 
     const orderRef = db.collection("orders").doc(orderId);
     const orderSnap = await orderRef.get();
 
     if (!orderSnap.exists) {
-      return Response.json({ error: "Pedido no encontrado" }, { status: 404 });
+      return Response.json(
+        { error: "Pedido no encontrado" },
+        {
+          status: 404,
+          headers: corsHeaders,
+        },
+      );
     }
 
     const order = orderSnap.data();
 
-    const restaurantRef = db.collection("restaurants").doc(order.restaurantId);
+    const restaurantRef = db
+      .collection("restaurants")
+      .doc(order.restaurantId);
+
     const restaurantSnap = await restaurantRef.get();
 
     if (!restaurantSnap.exists) {
       return Response.json(
         { error: "Restaurante no encontrado" },
-        { status: 404 },
+        {
+          status: 404,
+          headers: corsHeaders,
+        },
       );
     }
 
@@ -72,12 +110,19 @@ export async function POST(req) {
     restaurantParaStats = restaurant;
 
     if (restaurant.uid !== uid) {
-      return Response.json({ error: "No tienes permiso" }, { status: 403 });
+      return Response.json(
+        { error: "No tienes permiso" },
+        {
+          status: 403,
+          headers: corsHeaders,
+        },
+      );
     }
 
     const telefono = `52${order.cliente.telefono}`;
     const nombreCliente = order.cliente.nombre;
     const nombreRestaurante = restaurant.name;
+
     const resumenPedido = order.items
       .map((item) => `(x${item.quantity}) ${item.name}`)
       .join(", ");
@@ -134,12 +179,24 @@ export async function POST(req) {
 
     if (!response.ok) {
       await registrarWhatsappFallido(restaurantRef, restaurant);
-      return Response.json(data, { status: response.status });
+
+      return Response.json(data, {
+        status: response.status,
+        headers: corsHeaders,
+      });
     }
 
     await registrarWhatsappEnviado(restaurantRef);
 
-    return Response.json({ ok: true, data });
+    return Response.json(
+      {
+        ok: true,
+        data,
+      },
+      {
+        headers: corsHeaders,
+      },
+    );
   } catch (error) {
     if (intentoEnviarWhatsapp && restaurantRefParaStats) {
       await registrarWhatsappFallido(
@@ -148,6 +205,14 @@ export async function POST(req) {
       );
     }
 
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json(
+      {
+        error: error.message,
+      },
+      {
+        status: 500,
+        headers: corsHeaders,
+      },
+    );
   }
 }
