@@ -1185,7 +1185,7 @@ export default function OrdersPanel({ restaurantId }) {
 
     const token = await firebaseUser.getIdToken();
 
-    const response = await fetch(`/api/whatsapp/${endpoint}`, {
+    const response = await fetch(`https://platillo.mx/api/whatsapp/${endpoint}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
