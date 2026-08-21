@@ -648,6 +648,18 @@ function OrderModal({
             <div className="overflow-y-auto bg-[var(--light-background)] p-4 sm:p-6">
               <div className="grid gap-4 ">
                 <div className="space-y-4">
+                  {order.status === "cancelado" && (
+                    <div className="rounded-2xl border border-[var(--red-text-color)] bg-[var(--red-color)] p-5">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--red-text-color)]">
+                        Motivo de cancelación
+                      </p>
+
+                      <p className="mt-2 text-sm font-bold text-[var(--red-text-color)]">
+                        {order.razonCancelacion || "No especificado"}
+                      </p>
+                    </div>
+                  )}
+
                   <ModalSection eyebrow="Información" title="Cliente">
                     <InfoRow label="Nombre" value={order.cliente?.nombre} />
 
@@ -707,18 +719,6 @@ function OrderModal({
                       </>
                     )}
                   </ModalSection>
-
-                  {order.status === "cancelado" && (
-                    <div className="rounded-2xl border border-[var(--red-text-color)] bg-[var(--red-color)] p-5">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--red-text-color)]">
-                        Motivo de cancelación
-                      </p>
-
-                      <p className="mt-2 text-sm font-bold text-[var(--red-text-color)]">
-                        {order.razonCancelacion || "No especificado"}
-                      </p>
-                    </div>
-                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -1369,7 +1369,7 @@ export default function OrdersPanel({ restaurantId }) {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por cliente, teléfono o pedido"
-              className="h-11 w-full rounded-xl border border-[var(--half-gray)] bg-[var(--light-background)] pl-10 pr-4 text-sm text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--gray-color)] "
+              className="h-9 w-full rounded-lg border border-[var(--half-gray)] bg-[var(--light-background)] pl-10 pr-4 text-sm text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--gray-color)] "
             />
           </div>
 
