@@ -46,16 +46,16 @@ const FILTERS = [
     label: "Todos",
   },
   {
+    value: "procesando",
+    label: "Procesando",
+  },
+  {
     value: "activos",
     label: "En curso",
   },
   {
     value: "listos",
     label: "Listos",
-  },
-  {
-    value: "entregados",
-    label: "Entregados",
   },
   {
     value: "cancelados",
@@ -392,7 +392,7 @@ function OrderCard({ order, onOpen }) {
   return (
     <button type="button" onClick={() => onOpen(order.id)}>
       <div
-        className={` group w-full rounded-3xl  bg-[var(--background)] p-5 text-left shadow-[0_1px_2px_rgba(0,0,0,0.1)]   rounded-3xl transition-all hover:-translate-y-0.5 hover:border border-[var(--accent-color)] hover:shadow-[0_10px_45px_rgba(0,0,0,0.08)] `}
+        className={`shadow-[0_1px_32px_rgba(0,0,0,0.1)]  group w-full rounded-3xl  bg-[var(--background)] p-5 text-left xl:shadow-[0_1px_2px_rgba(0,0,0,0.1)]   rounded-3xl transition-all hover:-translate-y-0.5 hover:border border-[var(--accent-color)] hover:shadow-[0_10px_45px_rgba(0,0,0,0.08)] `}
       >
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -414,7 +414,7 @@ function OrderCard({ order, onOpen }) {
           <StatusBadge status={order.status} />
         </div>
 
-        <p className="mt-4 line-clamp-2 min-h-10 text-sm leading-5 text-[var(--gray-color)]">
+        <p className="mt-4 line-clamp-2 xl:min-h-10 text-sm leading-5 text-[var(--gray-color)]">
           {getOrderSummary(order)}
         </p>
 
@@ -477,7 +477,14 @@ function ModalSection({ eyebrow, title, children }) {
   );
 }
 
-function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel, onAccept }) {
+function OrderModal({
+  order,
+  loadingAction,
+  onClose,
+  onAdvance,
+  onCancel,
+  onAccept,
+}) {
   const [cancelMode, setCancelMode] = useState(false);
 
   const [cancellationReason, setCancellationReason] = useState("");
@@ -723,9 +730,9 @@ function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel, onAcce
                         return (
                           <div
                             key={`${item.productId || item.name}-${index}`}
-                            className="flex gap-3 rounded-xl bg-[var(--light-gray)] p-4"
+                            className="flex gap-3 rounded-xl border border-[1px] border-[var(--light-gray)] bg-[var(--light-background)] p-4"
                           >
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--light-accent)] text-sm font-black text-[var(--accent-color)]">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-color)] text-sm font-black text-[var(--background)]">
                               {Number(item.quantity) || 1}
                             </div>
 
@@ -769,23 +776,23 @@ function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel, onAcce
                     </div>
                   </ModalSection>
 
-                  <section className="rounded-2xl bg-[var(--foreground)] p-5 text-white">
+                  <section className="rounded-2xl bg-[var(--light-gray)] border border-[var(--half-gray)] p-5 ">
                     <div className="space-y-3">
                       {Number(order.costoEnvio) > 0 && (
-                        <div className="flex items-center justify-between text-sm text-white/65">
+                        <div className="flex items-center justify-between text-sm text-[var(--gray-color)]">
                           <span>Envío</span>
 
                           <span>{formatCurrency(order.costoEnvio)}</span>
                         </div>
                       )}
 
-                      <div className="flex items-end justify-between gap-4 border-t border-white/10 pt-4">
+                      <div className="flex items-end justify-between gap-4 border-t border-black/10 pt-4">
                         <div>
-                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/60">
+                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--gray-color)]">
                             Total
                           </p>
 
-                          <p className="mt-1 text-sm text-white/60">
+                          <p className="mt-1 text-sm text-[var(--gray-color)]">
                             {getItemCount(order)}{" "}
                             {getItemCount(order) === 1
                               ? "producto"
@@ -793,7 +800,7 @@ function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel, onAcce
                           </p>
                         </div>
 
-                        <p className="text-3xl font-black text-[var(--light-accent)]">
+                        <p className="text-xl font-black text-[var(--accent-color)]">
                           {formatCurrency(order.total)}
                         </p>
                       </div>
@@ -859,12 +866,8 @@ function OrderModal({ order, loadingAction, onClose, onAdvance, onCancel, onAcce
 
 function EmptyOrders({ search }) {
   return (
-    <div className="rounded-[2rem] border border-dashed border-[var(--half-gray)] bg-[var(--background)] px-6 py-16 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--light-accent)] text-2xl font-black text-[var(--accent-color)]">
-        P
-      </div>
-
-      <h3 className="mt-4 text-xl font-black text-[var(--foreground)]">
+    <div className="rounded-[2rem] border border-dashed border-[var(--half-gray)] bg-[var(--light-gray)] px-6 py-16 text-center">
+      <h3 className="mt-4 text-xl font-semibold text-[var(--gray-color)]">
         {search ? "No encontramos pedidos" : "No hay pedidos por el momento"}
       </h3>
 
@@ -881,6 +884,7 @@ export default function OrdersPanel({ restaurantId }) {
   const [orders, setOrders] = useState([]);
 
   const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const orderAlertAudioRef = useRef(null);
 
   const [filter, setFilter] = useState("todos");
 
@@ -1077,35 +1081,12 @@ export default function OrdersPanel({ restaurantId }) {
 
   function playNewOrderAlert(order) {
     try {
-      const context = audioContextRef.current;
-
-      if (context && context.state === "running") {
-        const playTone = (frequency, start, duration) => {
-          const oscillator = context.createOscillator();
-
-          const gain = context.createGain();
-
-          oscillator.type = "sine";
-          oscillator.frequency.value = frequency;
-
-          gain.gain.setValueAtTime(0, start);
-
-          gain.gain.linearRampToValueAtTime(0.18, start + 0.02);
-
-          gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
-
-          oscillator.connect(gain);
-          gain.connect(context.destination);
-
-          oscillator.start(start);
-          oscillator.stop(start + duration);
-        };
-
-        const now = context.currentTime;
-
-        playTone(880, now, 0.2);
-
-        playTone(1175, now + 0.2, 0.3);
+      const audio = orderAlertAudioRef.current;
+      if (audio) {
+        audio.currentTime = 0; // por si se dispara antes de que termine el anterior
+        audio
+          .play()
+          .catch((err) => console.error("No se pudo reproducir:", err));
       }
 
       if ("Notification" in window && Notification.permission === "granted") {
@@ -1179,6 +1160,11 @@ export default function OrdersPanel({ restaurantId }) {
 
     return () => unsubscribe();
   }, [restaurantId]);
+
+  useEffect(() => {
+    orderAlertAudioRef.current = new Audio("/sounds/money-soundfx.mp3");
+    orderAlertAudioRef.current.preload = "auto";
+  }, []);
 
   async function sendWhatsApp(endpoint, body) {
     const firebaseUser = await getFirebaseUser();
@@ -1344,7 +1330,7 @@ export default function OrdersPanel({ restaurantId }) {
         </button>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="hidden gap-3 sm:grid-cols-2 xl:grid xl:grid-cols-4">
         <SummaryCard
           label="En curso"
           value={pendentOrders.length}
@@ -1373,7 +1359,7 @@ export default function OrdersPanel({ restaurantId }) {
         />
       </section>
 
-      <section className="rounded-2xl  shadow-[0_1px_2px_rgba(0,0,0,0.1)] bg-[var(--background)] p-4">
+      <section className="hidden xl:flex xl:flex-col rounded-2xl  shadow-[0_1px_2px_rgba(0,0,0,0.1)] bg-[var(--background)] p-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="relative w-full xl:max-w-md">
             <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--gray-color)]" />
